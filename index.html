@@ -6,14 +6,16 @@
   <title>Banque du Jeu</title>
   <style>
     body { font-family: Arial, sans-serif; margin: 0; padding: 15px; background-color: #f4f6fb; color: #172033; }
-    h1 { text-align: center; margin-bottom: 15px; }
+    h1 { text-align: center; margin-bottom: 10px; }
     
-    /* Navigation Onglets */
+    .admin-bar { text-align: center; margin-bottom: 15px; }
+    .admin-status { font-size: 0.85rem; font-weight: bold; padding: 4px 10px; border-radius: 20px; background: #e2e8f0; color: #475569; display: inline-block; }
+    .admin-status.active { background: #dcfce7; color: #15803d; }
+    
     .nav-tabs { display: flex; justify-content: center; gap: 5px; margin-bottom: 20px; flex-wrap: wrap; }
     .tab-btn { background: #e2e8f0; border: none; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-weight: bold; color: #475569; }
     .tab-btn.active { background: #175cd3; color: white; }
     
-    /* Contenu des onglets */
     .tab-content { display: none; max-width: 500px; margin: 0 auto; }
     .tab-content.active { display: block; }
     
@@ -26,25 +28,36 @@
     button { width: 100%; background: #175cd3; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px; }
     button:hover { opacity: 0.9; }
     .btn-danger { background: #d92d20; width: auto; padding: 4px 8px; font-size: 0.8rem; }
+    .btn-success { background: #079455; }
+    .btn-secondary { background: #64748b; margin-top: 10px; }
     
     ul { list-style: none; padding: 0; margin: 0; }
     li { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
     .solde { font-weight: bold; color: #089213; }
+    .dette { font-weight: bold; color: #d92d20; }
+    .info-taux { font-size: 0.85rem; color: #d92d20; font-weight: bold; margin-bottom: 10px; }
+    
+    .lock-box { text-align: center; padding: 20px; }
   </style>
 </head>
 <body>
 
   <h1>💰 Banque du Jeu</h1>
+  
+  <div class="admin-bar">
+    <span id="admin-badge" class="admin-status">🔒 Mode Joueur</span>
+  </div>
 
   <!-- NAV TABS -->
   <div class="nav-tabs">
     <button class="tab-btn active" onclick="showTab('banque')">🏦 Banque</button>
-    <button class="tab-btn" onclick="showTab('prets')">🤝 Prêts</button>
+    <button class="tab-btn" onclick="showTab('prets-banque')">📈 Prêt Banque (50%)</button>
+    <button class="tab-btn" onclick="showTab('prets')">🤝 Prêts Joueurs</button>
     <button class="tab-btn" onclick="showTab('historique')">📜 Historique</button>
     <button class="tab-btn" onclick="showTab('admin')">⚙️ Config</button>
   </div>
 
-  <!-- ONGLET 1 : BANQUE -->
+  <!-- ONGLET 1 : BANQUE COURANTE -->
   <div id="tab-banque" class="tab-content active">
     <div class="card">
       <h2>Transaction Banque</h2>
@@ -57,36 +70,70 @@
         <option value="debit">➖ Débiter (Retrait)</option>
       </select>
       
-      <label>Montant :</label>
+      <label>Montant (€) :</label>
       <input type="number" id="banque-montant" placeholder="ex: 50">
       
       <button onclick="validerTransactionBanque()">Valider la transaction</button>
     </div>
 
     <div class="card">
-      <h2>Soldes des joueurs</h2>
+      <h2>Soldes & Dettes</h2>
       <ul id="liste-soldes"></ul>
     </div>
   </div>
 
-  <!-- ONGLET 2 : PRÊTS -->
+  <!-- ONGLET 2 : PRÊT BANCAIRE (TAUX 50%) -->
+  <div id="tab-prets-banque" class="tab-content">
+    <div class="card" id="card-accord-pret">
+      <h2>Demander un Prêt à la Banque</h2>
+      <p class="info-taux">⚠️ Taux d'intérêt : 50 % (Ex: pour 100 € empruntés, vous devez rembourser 150 € à la banque).</p>
+      
+      <div id="pret-banque-sec-lock" class="lock-box">
+        <p>🔒 Réservé à l'Administrateur pour accorder le prêt.</p>
+        <button onclick="deverrouillerAdmin()">Saisir le code PIN Admin</button>
+      </div>
+
+      <div id="pret-banque-sec-form" style="display: none;">
+        <label>Joueur emprunteur :</label>
+        <select id="pret-banque-joueur"></select>
+        
+        <label>Montant à recevoir (€) :</label>
+        <input type="number" id="pret-banque-montant" placeholder="ex: 100">
+        
+        <button onclick="accorderPretBanque()">Accord du prêt (+50% de dette)</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Rembourser la Banque</h2>
+      <label>Joueur :</label>
+      <select id="rembourse-joueur"></select>
+      
+      <label>Montant à rembourser (€) :</label>
+      <input type="number" id="rembourse-montant" placeholder="ex: 50">
+      
+      <button class="btn-success" onclick="rembourserBanque()">Rembourser la banque</button>
+    </div>
+  </div>
+
+  <!-- ONGLET 3 : PRÊTS ENTRE JOUEURS -->
   <div id="tab-prets" class="tab-content">
     <div class="card">
-      <h2>Prêt / Transfert entre joueurs</h2>
-      <label>De (Emetteur) :</label>
+      <h2>Transfert entre joueurs</h2>
+      <label>De (Émetteur) :</label>
       <select id="pret-de"></select>
       
       <label>À (Bénéficiaire) :</label>
       <select id="pret-a"></select>
       
-      <label>Montant :</label>
+      <label>Montant (€) :</label>
       <input type="number" id="pret-montant" placeholder="ex: 20">
       
       <button onclick="validerPret()">Effectuer le transfert</button>
     </div>
   </div>
 
-  <!-- ONGLET 3 : HISTORIQUE -->
+  <!-- ONGLET 4 : HISTORIQUE -->
   <div id="tab-historique" class="tab-content">
     <div class="card">
       <h2>Historique des opérations</h2>
@@ -94,20 +141,36 @@
     </div>
   </div>
 
-  <!-- ONGLET 4 : CONFIG (Joueurs et Jeux) -->
+  <!-- ONGLET 5 : CONFIG -->
   <div id="tab-admin" class="tab-content">
-    <div class="card">
-      <h2>👥 Joueurs</h2>
-      <input type="text" id="nom-joueur" placeholder="Nom du joueur">
-      <button onclick="ajouterJoueur()">+ Ajouter un joueur</button>
-      <ul id="liste-joueurs"></ul>
+    <div id="config-lock" class="card lock-box">
+      <h2>🔒 Accès Administrateur</h2>
+      <p>Entrez votre code PIN pour accéder aux réglages et à la gestion des membres.</p>
+      <button onclick="deverrouillerAdmin()">Saisir le code PIN Admin</button>
     </div>
 
-    <div class="card">
-      <h2>🎮 Jeux</h2>
-      <input type="text" id="nom-jeu" placeholder="Nom du jeu">
-      <button onclick="ajouterJeu()">+ Ajouter un jeu</button>
-      <ul id="liste-jeux"></ul>
+    <div id="config-content" style="display: none;">
+      <div class="card">
+        <h2>👥 Joueurs</h2>
+        <input type="text" id="nom-joueur" placeholder="Nom du joueur">
+        <button onclick="ajouterJoueur()">+ Ajouter un joueur</button>
+        <ul id="liste-joueurs"></ul>
+      </div>
+
+      <div class="card">
+        <h2>🎮 Jeux</h2>
+        <input type="text" id="nom-jeu" placeholder="Nom du jeu">
+        <button onclick="ajouterJeu()">+ Ajouter un jeu</button>
+        <ul id="liste-jeux"></ul>
+      </div>
+
+      <div class="card">
+        <h2>🔑 Sécurité Admin</h2>
+        <label>Nouveau code PIN Admin :</label>
+        <input type="password" id="nouveau-pin" placeholder="ex: 4321">
+        <button onclick="changerPin()">Modifier le PIN</button>
+        <button class="btn-secondary" onclick="verrouillerAdmin()">🔒 Se déconnecter d'Admin</button>
+      </div>
     </div>
   </div>
 
@@ -132,21 +195,36 @@
     const joueursRef = ref(db, 'joueurs');
     const jeuxRef = ref(db, 'jeux');
     const histoRef = ref(db, 'historique');
+    const pinRef = ref(db, 'config/adminPin');
 
     let localJoueurs = {};
+    let currentPin = "1234"; // PIN par défaut
+    let isAdmin = false;
 
-    // Synchronisation Joueurs & Soldes
+    // Charger le code PIN depuis Firebase
+    onValue(pinRef, (snapshot) => {
+      if (snapshot.exists()) {
+        currentPin = snapshot.val();
+      } else {
+        set(pinRef, "1234");
+      }
+    });
+
+    // Synchronisation Joueurs, Soldes et Dettes
     onValue(joueursRef, (snapshot) => {
       localJoueurs = snapshot.val() || {};
       
-      // Mise à jour listes déroulantes
       const selectBanque = document.getElementById('banque-joueur');
+      const selectPretBq = document.getElementById('pret-banque-joueur');
+      const selectRembBq = document.getElementById('rembourse-joueur');
       const selectDe = document.getElementById('pret-de');
       const selectA = document.getElementById('pret-a');
       const ulSoldes = document.getElementById('liste-soldes');
       const ulAdmin = document.getElementById('liste-joueurs');
 
       selectBanque.innerHTML = '';
+      selectPretBq.innerHTML = '';
+      selectRembBq.innerHTML = '';
       selectDe.innerHTML = '';
       selectA.innerHTML = '';
       ulSoldes.innerHTML = '';
@@ -154,11 +232,23 @@
 
       Object.entries(localJoueurs).forEach(([id, j]) => {
         const solde = j.solde || 0;
+        const dette = j.dette || 0;
+
         selectBanque.innerHTML += `<option value="${id}">${j.nom}</option>`;
+        selectPretBq.innerHTML += `<option value="${id}">${j.nom}</option>`;
+        selectRembBq.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectDe.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectA.innerHTML += `<option value="${id}">${j.nom}</option>`;
         
-        ulSoldes.innerHTML += `<li><span><b>${j.nom}</b></span> <span class="solde">${solde} €</span></li>`;
+        ulSoldes.innerHTML += `
+          <li>
+            <div><b>${j.nom}</b></div>
+            <div>
+              <span class="solde">${solde} €</span>
+              ${dette > 0 ? `<br><span class="dette">Dette Bq: ${dette} €</span>` : ''}
+            </div>
+          </li>`;
+          
         ulAdmin.innerHTML += `<li><span>${j.nom}</span> <button class="btn-danger" onclick="supprimerEntree('joueurs/${id}')">🗑️</button></li>`;
       });
     });
@@ -183,11 +273,62 @@
       });
     });
 
+    // Gestion de l'authentification Admin
+    window.deverrouillerAdmin = function() {
+      const pinSaisi = prompt("Entrez le code PIN Admin :");
+      if (pinSaisi === currentPin) {
+        isAdmin = true;
+        updateAdminUI();
+      } else if (pinSaisi !== null) {
+        alert("Code PIN incorrect !");
+      }
+    };
+
+    window.verrouillerAdmin = function() {
+      isAdmin = false;
+      updateAdminUI();
+    };
+
+    function updateAdminUI() {
+      const badge = document.getElementById('admin-badge');
+      const pretLock = document.getElementById('pret-banque-sec-lock');
+      const pretForm = document.getElementById('pret-banque-sec-form');
+      const configLock = document.getElementById('config-lock');
+      const configContent = document.getElementById('config-content');
+
+      if (isAdmin) {
+        badge.textContent = "🔓 Mode Admin Actif";
+        badge.classList.add('active');
+        pretLock.style.display = 'none';
+        pretForm.style.display = 'block';
+        configLock.style.display = 'none';
+        configContent.style.display = 'block';
+      } else {
+        badge.textContent = "🔒 Mode Joueur";
+        badge.classList.remove('active');
+        pretLock.style.display = 'block';
+        pretForm.style.display = 'none';
+        configLock.style.display = 'block';
+        configContent.style.display = 'none';
+      }
+    }
+
+    window.changerPin = function() {
+      const newPin = document.getElementById('nouveau-pin').value.trim();
+      if (newPin.length >= 4) {
+        set(pinRef, newPin);
+        alert("Code PIN mis à jour avec succès !");
+        document.getElementById('nouveau-pin').value = '';
+      } else {
+        alert("Le code PIN doit contenir au moins 4 caractères.");
+      }
+    };
+
     // Actions
     window.ajouterJoueur = function() {
       const input = document.getElementById('nom-joueur');
       if (input.value.trim() !== '') {
-        push(joueursRef, { nom: input.value.trim(), solde: 0 });
+        push(joueursRef, { nom: input.value.trim(), solde: 0, dette: 0 });
         input.value = '';
       }
     };
@@ -218,6 +359,58 @@
       document.getElementById('banque-montant').value = '';
     };
 
+    window.accorderPretBanque = function() {
+      const jId = document.getElementById('pret-banque-joueur').value;
+      const montant = parseFloat(document.getElementById('pret-banque-montant').value);
+
+      if (!jId || isNaN(montant) || montant <= 0) return;
+
+      const joueur = localJoueurs[jId];
+      const montantARembourser = montant * 1.5; // +50%
+
+      const nouveauSolde = (joueur.solde || 0) + montant;
+      const nouvelleDette = (joueur.dette || 0) + montantARembourser;
+
+      set(ref(db, `joueurs/${jId}/solde`), nouveauSolde);
+      set(ref(db, `joueurs/${jId}/dette`), nouvelleDette);
+
+      push(histoRef, { 
+        texte: `📈 Prêt Banque à ${joueur.nom} : Reçu +${montant} € (Dette créée : ${montantARembourser} € à 50%)`, 
+        date: new Date().toLocaleTimeString('fr-FR') 
+      });
+
+      document.getElementById('pret-banque-montant').value = '';
+    };
+
+    window.rembourserBanque = function() {
+      const jId = document.getElementById('rembourse-joueur').value;
+      const montant = parseFloat(document.getElementById('rembourse-montant').value);
+
+      if (!jId || isNaN(montant) || montant <= 0) return;
+
+      const joueur = localJoueurs[jId];
+      const soldeActuel = joueur.solde || 0;
+      const detteActuelle = joueur.dette || 0;
+
+      if (detteActuelle <= 0) {
+        alert("Ce joueur n'a aucune dette envers la banque.");
+        return;
+      }
+
+      const nouveauSolde = soldeActuel - montant;
+      const nouvelleDette = Math.max(0, detteActuelle - montant);
+
+      set(ref(db, `joueurs/${jId}/solde`), nouveauSolde);
+      set(ref(db, `joueurs/${jId}/dette`), nouvelleDette);
+
+      push(histoRef, { 
+        texte: `📉 Remboursement Banque par ${joueur.nom} : -${montant} € sur la dette (Reste dû : ${nouvelleDette} €)`, 
+        date: new Date().toLocaleTimeString('fr-FR') 
+      });
+
+      document.getElementById('rembourse-montant').value = '';
+    };
+
     window.validerPret = function() {
       const deId = document.getElementById('pret-de').value;
       const aId = document.getElementById('pret-a').value;
@@ -237,10 +430,13 @@
     };
 
     window.supprimerEntree = function(chemin) {
+      if (!isAdmin) {
+        alert("Seul l'administrateur peut supprimer une entrée.");
+        return;
+      }
       remove(ref(db, chemin));
     };
 
-    // Gestion des onglets
     window.showTab = function(tabName) {
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
