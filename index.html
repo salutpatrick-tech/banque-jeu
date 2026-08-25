@@ -480,6 +480,12 @@
         return;
       }
 
+      // VÉRIFICATION DU SOLDE DISPONIBLE
+      if (soldeActuel < montant) {
+        alert(`Fonds insuffisants ! ${joueur.nom} dispose de ${soldeActuel} € mais essaie de rembourser ${montant} €.`);
+        return;
+      }
+
       const nouveauSolde = soldeActuel - montant;
       const nouvelleDette = Math.max(0, detteActuelle - montant);
 
@@ -531,10 +537,18 @@
 
       if (!jEmprunteur || !jPreteur) return;
 
+      const soldePreteur = jPreteur.solde || 0;
+
+      // VÉRIFICATION SI LE PRÊTEUR A LE SOLDE NÉCESSAIRE
+      if (soldePreteur < dem.montant) {
+        alert(`Fonds insuffisants ! ${jPreteur.nom} ne dispose que de ${soldePreteur} € et ne peut pas prêter ${dem.montant} €.`);
+        return;
+      }
+
       const montantARembourser = dem.montant * (1 + taux / 100);
 
       // Effectuer les mouvements financiers
-      set(ref(db, `joueurs/${dem.preteurId}/solde`), (jPreteur.solde || 0) - dem.montant);
+      set(ref(db, `joueurs/${dem.preteurId}/solde`), soldePreteur - dem.montant);
       set(ref(db, `joueurs/${dem.emprunteurId}/solde`), (jEmprunteur.solde || 0) + dem.montant);
       set(ref(db, `joueurs/${dem.emprunteurId}/detteJoueurs`), (jEmprunteur.detteJoueurs || 0) + montantARembourser);
 
@@ -571,7 +585,15 @@
       const jDe = localJoueurs[deId];
       const jA = localJoueurs[aId];
 
-      set(ref(db, `joueurs/${deId}/solde`), (jDe.solde || 0) - montant);
+      const soldeDe = jDe.solde || 0;
+
+      // VÉRIFICATION DU SOLDE DISPONIBLE
+      if (soldeDe < montant) {
+        alert(`Fonds insuffisants ! ${jDe.nom} dispose de ${soldeDe} € mais essaie de rembourser ${montant} €.`);
+        return;
+      }
+
+      set(ref(db, `joueurs/${deId}/solde`), soldeDe - montant);
       set(ref(db, `joueurs/${aId}/solde`), (jA.solde || 0) + montant);
       
       const nouvelleDette = Math.max(0, (jDe.detteJoueurs || 0) - montant);
