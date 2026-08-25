@@ -27,9 +27,11 @@
     
     button { width: 100%; background: #175cd3; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px; }
     button:hover { opacity: 0.9; }
-    .btn-danger { background: #d92d20; width: auto; padding: 6px 12px; font-size: 0.85rem; }
+    .btn-danger { background: #d92d20; }
+    .btn-danger-sm { background: #d92d20; width: auto; padding: 6px 12px; font-size: 0.85rem; }
     .btn-success { background: #079455; }
     .btn-secondary { background: #64748b; margin-top: 10px; }
+    .btn-warning { background: #dc2626; margin-top: 10px; }
     
     ul { list-style: none; padding: 0; margin: 0; }
     li { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
@@ -42,6 +44,7 @@
     
     .lock-box { text-align: center; padding: 20px; }
     .admin-only { display: none; }
+    .reset-zone { border: 1px solid #fca5a5; background: #fff5f5; padding: 15px; border-radius: 8px; margin-top: 15px; }
   </style>
 </head>
 <body>
@@ -121,7 +124,7 @@
     </div>
   </div>
 
-  <!-- ONGLET 3 : PRÊTS ENTRE JOUEURS (DEMANDE & VALIDATION) -->
+  <!-- ONGLET 3 : PRÊTS ENTRE JOUEURS -->
   <div id="tab-prets" class="tab-content">
     <div class="card">
       <h2>1️⃣ Demander un prêt à un joueur</h2>
@@ -187,7 +190,7 @@
 
     <div id="config-lock" class="card lock-box">
       <h2>🔒 Administration</h2>
-      <p>Entrez votre code PIN pour ajouter/supprimer des éléments et modifier la sécurité.</p>
+      <p>Entrez votre code PIN pour accéder aux options avancées et de réinitialisation.</p>
       <button onclick="deverrouillerAdmin()">Saisir le code PIN Admin</button>
     </div>
 
@@ -196,6 +199,14 @@
       <label>Nouveau code PIN Admin :</label>
       <input type="password" id="nouveau-pin" placeholder="ex: 4321">
       <button onclick="changerPin()">Modifier le PIN</button>
+      
+      <div class="reset-zone">
+        <h3 style="margin-top:0; color:#b91c1c; text-align:center;">⚠️ Zones de réinitialisation</h3>
+        <p style="font-size:0.85rem; color:#7f1d1d; text-align:center;">Action irréversible.</p>
+        <button class="btn-danger" onclick="reinitialiserComptes()">🔄 Remettre les soldes/dettes à zéro</button>
+        <button class="btn-danger" style="background:#881337; margin-top:10px;" onclick="reinitialiserTout()">💥 Réinitialiser TOUT (Effacer tout)</button>
+      </div>
+
       <button class="btn-secondary" onclick="verrouillerAdmin()">🔒 Se déconnecter d'Admin</button>
     </div>
   </div>
@@ -288,7 +299,7 @@
             </div>
           </li>`;
           
-        const deleteBtn = isAdmin ? `<button class="btn-danger" onclick="supprimerEntree('joueurs/${id}')">🗑️</button>` : '';
+        const deleteBtn = isAdmin ? `<button class="btn-danger-sm" onclick="supprimerEntree('joueurs/${id}')">🗑️</button>` : '';
         ulAdmin.innerHTML += `<li><span>👤 ${j.nom}</span> ${deleteBtn}</li>`;
       });
     });
@@ -321,7 +332,7 @@
             </div>
             <div class="demande-actions">
               <button class="btn-success" onclick="validerDemandePret('${id}')">✅ Accepter & Prêter</button>
-              <button class="btn-danger" onclick="refuserDemandePret('${id}')">❌ Refuser</button>
+              <button class="btn-danger-sm" onclick="refuserDemandePret('${id}')">❌ Refuser</button>
             </div>
           </li>`;
       });
@@ -333,7 +344,7 @@
       const ul = document.getElementById('liste-jeux');
       ul.innerHTML = '';
       Object.entries(data).forEach(([id, jeu]) => {
-        const deleteBtn = isAdmin ? `<button class="btn-danger" onclick="supprimerEntree('jeux/${id}')">🗑️</button>` : '';
+        const deleteBtn = isAdmin ? `<button class="btn-danger-sm" onclick="supprimerEntree('jeux/${id}')">🗑️</button>` : '';
         ul.innerHTML += `<li><span>🎮 ${jeu.nom}</span> ${deleteBtn}</li>`;
       });
     });
@@ -388,7 +399,7 @@
         const ulAdmin = document.getElementById('liste-joueurs');
         ulAdmin.innerHTML = '';
         Object.entries(localJoueurs).forEach(([id, j]) => {
-          const deleteBtn = isAdmin ? `<button class="btn-danger" onclick="supprimerEntree('joueurs/${id}')">🗑️</button>` : '';
+          const deleteBtn = isAdmin ? `<button class="btn-danger-sm" onclick="supprimerEntree('joueurs/${id}')">🗑️</button>` : '';
           ulAdmin.innerHTML += `<li><span>👤 ${j.nom}</span> ${deleteBtn}</li>`;
         });
       }
@@ -402,6 +413,32 @@
         document.getElementById('nouveau-pin').value = '';
       } else {
         alert("Le code PIN doit contenir au moins 4 caractères.");
+      }
+    };
+
+    // RÉINITIALISATIONS ADMIN
+    window.reinitialiserComptes = function() {
+      if (!isAdmin) return;
+      if (confirm("Voulez-vous vraiment remettre tous les soldes et dettes des joueurs à ZERO ? (Les noms des joueurs seront conservés)")) {
+        Object.keys(localJoueurs).forEach(id => {
+          set(ref(db, `joueurs/${id}/solde`), 0);
+          set(ref(db, `joueurs/${id}/dette`), 0);
+          set(ref(db, `joueurs/${id}/detteJoueurs`), 0);
+        });
+        remove(histoRef);
+        remove(demandesRef);
+        alert("Tous les compteurs ont été remis à zéro !");
+      }
+    };
+
+    window.reinitialiserTout = function() {
+      if (!isAdmin) return;
+      if (confirm("🚨 ATTENTION : Voulez-vous TOUT effacer (joueurs, jeux, historique, demandes) ? Cette action est définitive.")) {
+        remove(joueursRef);
+        remove(jeuxRef);
+        remove(histoRef);
+        remove(demandesRef);
+        alert("L'application a été entièrement réinitialisée !");
       }
     };
 
@@ -480,7 +517,6 @@
         return;
       }
 
-      // VÉRIFICATION DU SOLDE DISPONIBLE
       if (soldeActuel < montant) {
         alert(`Fonds insuffisants ! ${joueur.nom} dispose de ${soldeActuel} € mais essaie de rembourser ${montant} €.`);
         return;
@@ -500,7 +536,6 @@
       document.getElementById('rembourse-montant').value = '';
     };
 
-    // LOGIQUE DE PRÊT ENTRE JOUEURS EN 2 ÉTAPES
     window.creerDemandePret = function() {
       const emprunteurId = document.getElementById('demande-a').value;
       const preteurId = document.getElementById('demande-de').value;
@@ -539,7 +574,6 @@
 
       const soldePreteur = jPreteur.solde || 0;
 
-      // VÉRIFICATION SI LE PRÊTEUR A LE SOLDE NÉCESSAIRE
       if (soldePreteur < dem.montant) {
         alert(`Fonds insuffisants ! ${jPreteur.nom} ne dispose que de ${soldePreteur} € et ne peut pas prêter ${dem.montant} €.`);
         return;
@@ -547,7 +581,6 @@
 
       const montantARembourser = dem.montant * (1 + taux / 100);
 
-      // Effectuer les mouvements financiers
       set(ref(db, `joueurs/${dem.preteurId}/solde`), soldePreteur - dem.montant);
       set(ref(db, `joueurs/${dem.emprunteurId}/solde`), (jEmprunteur.solde || 0) + dem.montant);
       set(ref(db, `joueurs/${dem.emprunteurId}/detteJoueurs`), (jEmprunteur.detteJoueurs || 0) + montantARembourser);
@@ -558,7 +591,6 @@
         date: new Date().toLocaleTimeString('fr-FR') 
       });
 
-      // Supprimer la demande de la liste
       remove(ref(db, `demandes_prets/${demandeId}`));
     };
 
@@ -587,7 +619,6 @@
 
       const soldeDe = jDe.solde || 0;
 
-      // VÉRIFICATION DU SOLDE DISPONIBLE
       if (soldeDe < montant) {
         alert(`Fonds insuffisants ! ${jDe.nom} dispose de ${soldeDe} € mais essaie de rembourser ${montant} €.`);
         return;
