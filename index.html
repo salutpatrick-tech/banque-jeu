@@ -27,12 +27,15 @@
     
     button { width: 100%; background: #175cd3; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px; }
     button:hover { opacity: 0.9; }
-    .btn-danger { background: #d92d20; width: auto; padding: 4px 8px; font-size: 0.8rem; }
+    .btn-danger { background: #d92d20; width: auto; padding: 6px 12px; font-size: 0.85rem; }
     .btn-success { background: #079455; }
     .btn-secondary { background: #64748b; margin-top: 10px; }
     
     ul { list-style: none; padding: 0; margin: 0; }
     li { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .demande-item { flex-direction: column; align-items: stretch; gap: 8px; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 10px; }
+    .demande-actions { display: flex; gap: 8px; }
+    
     .solde { font-weight: bold; color: #089213; }
     .dette { font-weight: bold; color: #d92d20; }
     .info-taux { font-size: 0.85rem; color: #d92d20; font-weight: bold; margin-bottom: 10px; }
@@ -61,20 +64,28 @@
   <!-- ONGLET 1 : BANQUE COURANTE -->
   <div id="tab-banque" class="tab-content active">
     <div class="card">
-      <h2>Transaction Banque</h2>
-      <label>Joueur :</label>
-      <select id="banque-joueur"></select>
+      <h2>Transaction Directe Banque</h2>
       
-      <label>Type :</label>
-      <select id="banque-type">
-        <option value="credit">➕ Créditer (Versement)</option>
-        <option value="debit">➖ Débiter (Retrait)</option>
-      </select>
-      
-      <label>Montant (€) :</label>
-      <input type="number" id="banque-montant" placeholder="ex: 50">
-      
-      <button onclick="validerTransactionBanque()">Valider la transaction</button>
+      <div id="banque-sec-lock" class="lock-box">
+        <p>🔒 Réservé à l'Administrateur pour créditer ou débiter un compte.</p>
+        <button onclick="deverrouillerAdmin()">Saisir le code PIN Admin</button>
+      </div>
+
+      <div id="banque-sec-form" class="admin-only">
+        <label>Joueur :</label>
+        <select id="banque-joueur"></select>
+        
+        <label>Type :</label>
+        <select id="banque-type">
+          <option value="credit">➕ Créditer (Versement)</option>
+          <option value="debit">➖ Débiter (Retrait)</option>
+        </select>
+        
+        <label>Montant (€) :</label>
+        <input type="number" id="banque-montant" placeholder="ex: 50">
+        
+        <button onclick="validerTransactionBanque()">Valider la transaction</button>
+      </div>
     </div>
 
     <div class="card">
@@ -83,26 +94,19 @@
     </div>
   </div>
 
-  <!-- ONGLET 2 : PRÊT BANCAIRE (TAUX 50%) -->
+  <!-- ONGLET 2 : PRÊT BANCAIRE -->
   <div id="tab-prets-banque" class="tab-content">
-    <div class="card" id="card-accord-pret">
-      <h2>Demander un Prêt à la Banque</h2>
+    <div class="card">
+      <h2>Emprunter à la Banque</h2>
       <p class="info-taux">⚠️ Taux d'intérêt : 50 % (Ex: pour 100 € empruntés, vous devez rembourser 150 € à la banque).</p>
       
-      <div id="pret-banque-sec-lock" class="lock-box">
-        <p>🔒 Réservé à l'Administrateur pour accorder le prêt.</p>
-        <button onclick="deverrouillerAdmin()">Saisir le code PIN Admin</button>
-      </div>
-
-      <div id="pret-banque-sec-form" style="display: none;">
-        <label>Joueur emprunteur :</label>
-        <select id="pret-banque-joueur"></select>
-        
-        <label>Montant à recevoir (€) :</label>
-        <input type="number" id="pret-banque-montant" placeholder="ex: 100">
-        
-        <button onclick="accorderPretBanque()">Accord du prêt (+50% de dette)</button>
-      </div>
+      <label>Joueur emprunteur :</label>
+      <select id="pret-banque-joueur"></select>
+      
+      <label>Montant à recevoir (€) :</label>
+      <input type="number" id="pret-banque-montant" placeholder="ex: 100">
+      
+      <button onclick="accorderPretBanque()">Confirmer l'emprunt (+50% de dette)</button>
     </div>
 
     <div class="card">
@@ -117,27 +121,29 @@
     </div>
   </div>
 
-  <!-- ONGLET 3 : PRÊTS ENTRE JOUEURS AVEC COMMISSION -->
+  <!-- ONGLET 3 : PRÊTS ENTRE JOUEURS (DEMANDE & VALIDATION) -->
   <div id="tab-prets" class="tab-content">
     <div class="card">
-      <h2>Prêter à un joueur avec commission</h2>
-      <label>Prêteur (Émetteur) :</label>
-      <select id="pret-de"></select>
+      <h2>1️⃣ Demander un prêt à un joueur</h2>
+      <label>Vous (Emprunteur) :</label>
+      <select id="demande-a"></select>
       
-      <label>Emprunteur (Bénéficiaire) :</label>
-      <select id="pret-a"></select>
+      <label>Demander à (Prêteur) :</label>
+      <select id="demande-de"></select>
       
-      <label>Montant prêté (€) :</label>
-      <input type="number" id="pret-montant" placeholder="ex: 100">
+      <label>Montant demandé (€) :</label>
+      <input type="number" id="demande-montant" placeholder="ex: 100">
       
-      <label>Commission / Taux d'intérêt (%) :</label>
-      <input type="number" id="pret-taux" placeholder="ex: 10 (pour 10%)" value="0">
-      
-      <button onclick="validerPretJoueur()">Accorder le prêt entre joueurs</button>
+      <button onclick="creerDemandePret()">Envoyer la demande de prêt</button>
     </div>
 
     <div class="card">
-      <h2>Rembourser un joueur</h2>
+      <h2>2️⃣ Demandes en attente de validation</h2>
+      <ul id="liste-demandes-prets"></ul>
+    </div>
+
+    <div class="card">
+      <h2>💸 Rembourser un joueur</h2>
       <label>Débiteur (Celui qui rembourse) :</label>
       <select id="rembourse-joueur-de"></select>
       
@@ -215,13 +221,15 @@
     const joueursRef = ref(db, 'joueurs');
     const jeuxRef = ref(db, 'jeux');
     const histoRef = ref(db, 'historique');
+    const demandesRef = ref(db, 'demandes_prets');
     const pinRef = ref(db, 'config/adminPin');
 
     let localJoueurs = {};
+    let localDemandes = {};
     let currentPin = "1234";
     let isAdmin = false;
 
-    // Charger le code PIN
+    // Charger le PIN
     onValue(pinRef, (snapshot) => {
       if (snapshot.exists()) {
         currentPin = snapshot.val();
@@ -230,15 +238,15 @@
       }
     });
 
-    // Synchronisation Joueurs, Soldes et Dettes
+    // Synchronisation Joueurs & Menus déroulants
     onValue(joueursRef, (snapshot) => {
       localJoueurs = snapshot.val() || {};
       
       const selectBanque = document.getElementById('banque-joueur');
       const selectPretBq = document.getElementById('pret-banque-joueur');
       const selectRembBq = document.getElementById('rembourse-joueur');
-      const selectDe = document.getElementById('pret-de');
-      const selectA = document.getElementById('pret-a');
+      const selectDemA = document.getElementById('demande-a');
+      const selectDemDe = document.getElementById('demande-de');
       const selectRembDe = document.getElementById('rembourse-joueur-de');
       const selectRembA = document.getElementById('rembourse-joueur-a');
       const ulSoldes = document.getElementById('liste-soldes');
@@ -247,8 +255,8 @@
       selectBanque.innerHTML = '';
       selectPretBq.innerHTML = '';
       selectRembBq.innerHTML = '';
-      selectDe.innerHTML = '';
-      selectA.innerHTML = '';
+      selectDemA.innerHTML = '';
+      selectDemDe.innerHTML = '';
       selectRembDe.innerHTML = '';
       selectRembA.innerHTML = '';
       ulSoldes.innerHTML = '';
@@ -262,8 +270,8 @@
         selectBanque.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectPretBq.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectRembBq.innerHTML += `<option value="${id}">${j.nom}</option>`;
-        selectDe.innerHTML += `<option value="${id}">${j.nom}</option>`;
-        selectA.innerHTML += `<option value="${id}">${j.nom}</option>`;
+        selectDemA.innerHTML += `<option value="${id}">${j.nom}</option>`;
+        selectDemDe.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectRembDe.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectRembA.innerHTML += `<option value="${id}">${j.nom}</option>`;
         
@@ -282,6 +290,40 @@
           
         const deleteBtn = isAdmin ? `<button class="btn-danger" onclick="supprimerEntree('joueurs/${id}')">🗑️</button>` : '';
         ulAdmin.innerHTML += `<li><span>👤 ${j.nom}</span> ${deleteBtn}</li>`;
+      });
+    });
+
+    // Synchronisation Demandes de prêt entre joueurs
+    onValue(demandesRef, (snapshot) => {
+      localDemandes = snapshot.val() || {};
+      const ulDemandes = document.getElementById('liste-demandes-prets');
+      ulDemandes.innerHTML = '';
+
+      const cles = Object.keys(localDemandes);
+      if (cles.length === 0) {
+        ulDemandes.innerHTML = '<li style="text-align:center; color:#64748b;">Aucune demande en attente</li>';
+        return;
+      }
+
+      cles.forEach((id) => {
+        const dem = localDemandes[id];
+        const jEmprunteur = localJoueurs[dem.emprunteurId]?.nom || "Inconnu";
+        const jPreteur = localJoueurs[dem.preteurId]?.nom || "Inconnu";
+
+        ulDemandes.innerHTML += `
+          <li class="demande-item">
+            <div>
+              <b>🙋‍♂️ ${jEmprunteur}</b> demande <b>${dem.montant} €</b> à <b>🤝 ${jPreteur}</b>
+            </div>
+            <div>
+              <label style="margin-top:0;">Taux du prêteur (%):</label>
+              <input type="number" id="taux-${id}" value="0" placeholder="0" style="margin-bottom:8px;">
+            </div>
+            <div class="demande-actions">
+              <button class="btn-success" onclick="validerDemandePret('${id}')">✅ Accepter & Prêter</button>
+              <button class="btn-danger" onclick="refuserDemandePret('${id}')">❌ Refuser</button>
+            </div>
+          </li>`;
       });
     });
 
@@ -324,28 +366,24 @@
 
     function updateAdminUI() {
       const badge = document.getElementById('admin-badge');
-      const pretLock = document.getElementById('pret-banque-sec-lock');
-      const pretForm = document.getElementById('pret-banque-sec-form');
+      const banqueLock = document.getElementById('banque-sec-lock');
       const configLock = document.getElementById('config-lock');
       const adminElements = document.querySelectorAll('.admin-only');
 
       if (isAdmin) {
         badge.textContent = "🔓 Mode Admin Actif";
         badge.classList.add('active');
-        pretLock.style.display = 'none';
-        pretForm.style.display = 'block';
+        banqueLock.style.display = 'none';
         configLock.style.display = 'none';
         adminElements.forEach(el => el.style.display = 'block');
       } else {
         badge.textContent = "🔒 Mode Joueur";
         badge.classList.remove('active');
-        pretLock.style.display = 'block';
-        pretForm.style.display = 'none';
+        banqueLock.style.display = 'block';
         configLock.style.display = 'block';
         adminElements.forEach(el => el.style.display = 'none');
       }
-      
-      // Re-rendre les listes pour afficher ou masquer les boutons de suppression 🗑️
+
       if (localJoueurs) {
         const ulAdmin = document.getElementById('liste-joueurs');
         ulAdmin.innerHTML = '';
@@ -385,6 +423,8 @@
     };
 
     window.validerTransactionBanque = function() {
+      if (!isAdmin) return;
+      
       const jId = document.getElementById('banque-joueur').value;
       const type = document.getElementById('banque-type').value;
       const montant = parseFloat(document.getElementById('banque-montant').value);
@@ -418,7 +458,7 @@
       set(ref(db, `joueurs/${jId}/dette`), nouvelleDette);
 
       push(histoRef, { 
-        texte: `📈 Prêt Banque à ${joueur.nom} : Reçu +${montant} € (Dette créée : ${montantARembourser} € à 50%)`, 
+        texte: `📈 Emprunt Banque par ${joueur.nom} : Reçu +${montant} € (Dette créée : ${montantARembourser} € à 50%)`, 
         date: new Date().toLocaleTimeString('fr-FR') 
       });
 
@@ -454,28 +494,71 @@
       document.getElementById('rembourse-montant').value = '';
     };
 
-    window.validerPretJoueur = function() {
-      const deId = document.getElementById('pret-de').value;
-      const aId = document.getElementById('pret-a').value;
-      const montant = parseFloat(document.getElementById('pret-montant').value);
-      const taux = parseFloat(document.getElementById('pret-taux').value) || 0;
+    // LOGIQUE DE PRÊT ENTRE JOUEURS EN 2 ÉTAPES
+    window.creerDemandePret = function() {
+      const emprunteurId = document.getElementById('demande-a').value;
+      const preteurId = document.getElementById('demande-de').value;
+      const montant = parseFloat(document.getElementById('demande-montant').value);
 
-      if (!deId || !aId || deId === aId || isNaN(montant) || montant <= 0) return;
+      if (!emprunteurId || !preteurId || emprunteurId === preteurId || isNaN(montant) || montant <= 0) {
+        alert("Veuillez sélectionner deux joueurs différents et un montant valide.");
+        return;
+      }
 
-      const jDe = localJoueurs[deId];
-      const jA = localJoueurs[aId];
+      push(demandesRef, {
+        emprunteurId: emprunteurId,
+        preteurId: preteurId,
+        montant: montant
+      });
 
-      const montantARembourser = montant * (1 + taux / 100);
+      push(histoRef, { 
+        texte: `📩 Demande de prêt : ${localJoueurs[emprunteurId].nom} demande ${montant} € à ${localJoueurs[preteurId].nom}`, 
+        date: new Date().toLocaleTimeString('fr-FR') 
+      });
 
-      set(ref(db, `joueurs/${deId}/solde`), (jDe.solde || 0) - montant);
-      set(ref(db, `joueurs/${aId}/solde`), (jA.solde || 0) + montant);
-      set(ref(db, `joueurs/${aId}/detteJoueurs`), (jA.detteJoueurs || 0) + montantARembourser);
+      document.getElementById('demande-montant').value = '';
+    };
+
+    window.validerDemandePret = function(demandeId) {
+      const dem = localDemandes[demandeId];
+      if (!dem) return;
+
+      const tauxInput = document.getElementById(`taux-${demandeId}`);
+      const taux = parseFloat(tauxInput.value) || 0;
+
+      const jEmprunteur = localJoueurs[dem.emprunteurId];
+      const jPreteur = localJoueurs[dem.preteurId];
+
+      if (!jEmprunteur || !jPreteur) return;
+
+      const montantARembourser = dem.montant * (1 + taux / 100);
+
+      // Effectuer les mouvements financiers
+      set(ref(db, `joueurs/${dem.preteurId}/solde`), (jPreteur.solde || 0) - dem.montant);
+      set(ref(db, `joueurs/${dem.emprunteurId}/solde`), (jEmprunteur.solde || 0) + dem.montant);
+      set(ref(db, `joueurs/${dem.emprunteurId}/detteJoueurs`), (jEmprunteur.detteJoueurs || 0) + montantARembourser);
 
       const logTaux = taux > 0 ? ` (Taux : ${taux}% ➡️ Dette : ${montantARembourser} €)` : '';
-      push(histoRef, { texte: `🤝 Prêt : ${jDe.nom} ➡️ ${jA.nom} : ${montant} €${logTaux}`, date: new Date().toLocaleTimeString('fr-FR') });
+      push(histoRef, { 
+        texte: `🤝 Prêt Validé : ${jPreteur.nom} prêté à ${jEmprunteur.nom} : ${dem.montant} €${logTaux}`, 
+        date: new Date().toLocaleTimeString('fr-FR') 
+      });
 
-      document.getElementById('pret-montant').value = '';
-      document.getElementById('pret-taux').value = '0';
+      // Supprimer la demande de la liste
+      remove(ref(db, `demandes_prets/${demandeId}`));
+    };
+
+    window.refuserDemandePret = function(demandeId) {
+      const dem = localDemandes[demandeId];
+      if (dem) {
+        const jEmprunteur = localJoueurs[dem.emprunteurId]?.nom || "Joueur";
+        const jPreteur = localJoueurs[dem.preteurId]?.nom || "Joueur";
+        push(histoRef, { 
+          texte: `❌ Prêt Refusé par ${jPreteur} pour la demande de ${jEmprunteur} (${dem.montant} €)`, 
+          date: new Date().toLocaleTimeString('fr-FR') 
+        });
+      }
+      remove(ref(db, `demandes_prets/${demandeId}`));
     };
 
     window.validerRemboursementJoueur = function() {
