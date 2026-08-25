@@ -38,6 +38,7 @@
     .info-taux { font-size: 0.85rem; color: #d92d20; font-weight: bold; margin-bottom: 10px; }
     
     .lock-box { text-align: center; padding: 20px; }
+    .admin-only { display: none; }
   </style>
 </head>
 <body>
@@ -54,7 +55,7 @@
     <button class="tab-btn" onclick="showTab('prets-banque')">📈 Prêt Banque (50%)</button>
     <button class="tab-btn" onclick="showTab('prets')">🤝 Prêts Joueurs</button>
     <button class="tab-btn" onclick="showTab('historique')">📜 Historique</button>
-    <button class="tab-btn" onclick="showTab('admin')">⚙️ Config</button>
+    <button class="tab-btn" onclick="showTab('admin')">⚙️ Config / Listes</button>
   </div>
 
   <!-- ONGLET 1 : BANQUE COURANTE -->
@@ -158,36 +159,38 @@
     </div>
   </div>
 
-  <!-- ONGLET 5 : CONFIG -->
+  <!-- ONGLET 5 : CONFIG & LISTES -->
   <div id="tab-admin" class="tab-content">
+    <div class="card">
+      <h2>👥 Liste des Joueurs</h2>
+      <div class="admin-only">
+        <input type="text" id="nom-joueur" placeholder="Nom du joueur">
+        <button onclick="ajouterJoueur()">+ Ajouter un joueur</button>
+      </div>
+      <ul id="liste-joueurs"></ul>
+    </div>
+
+    <div class="card">
+      <h2>🎮 Liste des Jeux</h2>
+      <div class="admin-only">
+        <input type="text" id="nom-jeu" placeholder="Nom du jeu">
+        <button onclick="ajouterJeu()">+ Ajouter un jeu</button>
+      </div>
+      <ul id="liste-jeux"></ul>
+    </div>
+
     <div id="config-lock" class="card lock-box">
-      <h2>🔒 Accès Administrateur</h2>
-      <p>Entrez votre code PIN pour accéder aux réglages et à la gestion des membres.</p>
+      <h2>🔒 Administration</h2>
+      <p>Entrez votre code PIN pour ajouter/supprimer des éléments et modifier la sécurité.</p>
       <button onclick="deverrouillerAdmin()">Saisir le code PIN Admin</button>
     </div>
 
-    <div id="config-content" style="display: none;">
-      <div class="card">
-        <h2>👥 Joueurs</h2>
-        <input type="text" id="nom-joueur" placeholder="Nom du joueur">
-        <button onclick="ajouterJoueur()">+ Ajouter un joueur</button>
-        <ul id="liste-joueurs"></ul>
-      </div>
-
-      <div class="card">
-        <h2>🎮 Jeux</h2>
-        <input type="text" id="nom-jeu" placeholder="Nom du jeu">
-        <button onclick="ajouterJeu()">+ Ajouter un jeu</button>
-        <ul id="liste-jeux"></ul>
-      </div>
-
-      <div class="card">
-        <h2>🔑 Sécurité Admin</h2>
-        <label>Nouveau code PIN Admin :</label>
-        <input type="password" id="nouveau-pin" placeholder="ex: 4321">
-        <button onclick="changerPin()">Modifier le PIN</button>
-        <button class="btn-secondary" onclick="verrouillerAdmin()">🔒 Se déconnecter d'Admin</button>
-      </div>
+    <div id="config-content" class="card admin-only">
+      <h2>🔑 Sécurité Admin</h2>
+      <label>Nouveau code PIN Admin :</label>
+      <input type="password" id="nouveau-pin" placeholder="ex: 4321">
+      <button onclick="changerPin()">Modifier le PIN</button>
+      <button class="btn-secondary" onclick="verrouillerAdmin()">🔒 Se déconnecter d'Admin</button>
     </div>
   </div>
 
@@ -277,7 +280,8 @@
             </div>
           </li>`;
           
-        ulAdmin.innerHTML += `<li><span>${j.nom}</span> <button class="btn-danger" onclick="supprimerEntree('joueurs/${id}')">🗑️</button></li>`;
+        const deleteBtn = isAdmin ? `<button class="btn-danger" onclick="supprimerEntree('joueurs/${id}')">🗑️</button>` : '';
+        ulAdmin.innerHTML += `<li><span>👤 ${j.nom}</span> ${deleteBtn}</li>`;
       });
     });
 
@@ -287,7 +291,8 @@
       const ul = document.getElementById('liste-jeux');
       ul.innerHTML = '';
       Object.entries(data).forEach(([id, jeu]) => {
-        ul.innerHTML += `<li><span>🎮 ${jeu.nom}</span> <button class="btn-danger" onclick="supprimerEntree('jeux/${id}')">🗑️</button></li>`;
+        const deleteBtn = isAdmin ? `<button class="btn-danger" onclick="supprimerEntree('jeux/${id}')">🗑️</button>` : '';
+        ul.innerHTML += `<li><span>🎮 ${jeu.nom}</span> ${deleteBtn}</li>`;
       });
     });
 
@@ -322,7 +327,7 @@
       const pretLock = document.getElementById('pret-banque-sec-lock');
       const pretForm = document.getElementById('pret-banque-sec-form');
       const configLock = document.getElementById('config-lock');
-      const configContent = document.getElementById('config-content');
+      const adminElements = document.querySelectorAll('.admin-only');
 
       if (isAdmin) {
         badge.textContent = "🔓 Mode Admin Actif";
@@ -330,14 +335,24 @@
         pretLock.style.display = 'none';
         pretForm.style.display = 'block';
         configLock.style.display = 'none';
-        configContent.style.display = 'block';
+        adminElements.forEach(el => el.style.display = 'block');
       } else {
         badge.textContent = "🔒 Mode Joueur";
         badge.classList.remove('active');
         pretLock.style.display = 'block';
         pretForm.style.display = 'none';
         configLock.style.display = 'block';
-        configContent.style.display = 'none';
+        adminElements.forEach(el => el.style.display = 'none');
+      }
+      
+      // Re-rendre les listes pour afficher ou masquer les boutons de suppression 🗑️
+      if (localJoueurs) {
+        const ulAdmin = document.getElementById('liste-joueurs');
+        ulAdmin.innerHTML = '';
+        Object.entries(localJoueurs).forEach(([id, j]) => {
+          const deleteBtn = isAdmin ? `<button class="btn-danger" onclick="supprimerEntree('joueurs/${id}')">🗑️</button>` : '';
+          ulAdmin.innerHTML += `<li><span>👤 ${j.nom}</span> ${deleteBtn}</li>`;
+        });
       }
     }
 
@@ -352,7 +367,7 @@
       }
     };
 
-    // Actions de base
+    // Actions
     window.ajouterJoueur = function() {
       const input = document.getElementById('nom-joueur');
       if (input.value.trim() !== '') {
@@ -439,7 +454,6 @@
       document.getElementById('rembourse-montant').value = '';
     };
 
-    // Prêt entre joueurs avec Taux/Commission
     window.validerPretJoueur = function() {
       const deId = document.getElementById('pret-de').value;
       const aId = document.getElementById('pret-a').value;
@@ -453,11 +467,8 @@
 
       const montantARembourser = montant * (1 + taux / 100);
 
-      // Le prêteur donne le montant de base, le bénéficiaire le reçoit
       set(ref(db, `joueurs/${deId}/solde`), (jDe.solde || 0) - montant);
       set(ref(db, `joueurs/${aId}/solde`), (jA.solde || 0) + montant);
-      
-      // La dette envers les joueurs est enregistrée chez l'emprunteur
       set(ref(db, `joueurs/${aId}/detteJoueurs`), (jA.detteJoueurs || 0) + montantARembourser);
 
       const logTaux = taux > 0 ? ` (Taux : ${taux}% ➡️ Dette : ${montantARembourser} €)` : '';
@@ -467,7 +478,6 @@
       document.getElementById('pret-taux').value = '0';
     };
 
-    // Remboursement entre joueurs
     window.validerRemboursementJoueur = function() {
       const deId = document.getElementById('rembourse-joueur-de').value;
       const aId = document.getElementById('rembourse-joueur-a').value;
@@ -478,11 +488,9 @@
       const jDe = localJoueurs[deId];
       const jA = localJoueurs[aId];
 
-      // Le débiteur paie, le créancier reçoit
       set(ref(db, `joueurs/${deId}/solde`), (jDe.solde || 0) - montant);
       set(ref(db, `joueurs/${aId}/solde`), (jA.solde || 0) + montant);
       
-      // La dette joueurs du débiteur diminue
       const nouvelleDette = Math.max(0, (jDe.detteJoueurs || 0) - montant);
       set(ref(db, `joueurs/${deId}/detteJoueurs`), nouvelleDette);
 
