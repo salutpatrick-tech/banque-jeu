@@ -41,7 +41,6 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, push, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 
-    // Configuration Firebase avec tes vraies clés
     const firebaseConfig = {
       apiKey: "AIzaSyBzJugWBBZf2pgelCAGNAjycBMZv64WHbc",
       authDomain: "banque-jeu.firebaseapp.com",
@@ -49,7 +48,7 @@
       storageBucket: "banque-jeu.firebasestorage.app",
       messagingSenderId: "333582703295",
       appId: "1:333582703295:web:aedbdfe4fe3ecd1ed8c40a",
-      databaseURL: "https://banque-jeu-default-rtdb.firebaseio.com"
+      databaseURL: "https://banque-jeu-default-rtdb.europe-west1.firebasedatabase.app"
     };
 
     const app = initializeApp(firebaseConfig);
@@ -58,7 +57,6 @@
     const joueursRef = ref(db, 'joueurs');
     const jeuxRef = ref(db, 'jeux');
 
-    // Écouteurs en temps réel
     onValue(joueursRef, (snapshot) => {
       const data = snapshot.val();
       const ul = document.getElementById('liste-joueurs');
@@ -89,12 +87,10 @@
             </li>`;
         });
       } else {
-        // Crée automatiquement le jeu "Défi" si la liste est vide au départ
-        push(jeuxRef, { nom: "Défi" });
+        ul.innerHTML = '<li>Aucun jeu enregistré.</li>';
       }
     });
 
-    // Fonctions globales
     window.ajouterJoueur = function() {
       const input = document.getElementById('nom-joueur');
       if (input.value.trim() !== '') {
