@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banque du Jeu</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background-color: #f4f6fb; color: #172033; }
+    .card { background: white; padding: 20px; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); max-width: 500px; margin-left: auto; margin-right: auto; }
+    h1, h2 { text-align: center; }
+    input { width: calc(100% - 22px); padding: 10px; margin: 8px 0; border: 1px solid #ccc; border-radius: 6px; }
+    button { width: 100%; background: #175cd3; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px; }
+    button:hover { opacity: 0.9; }
+    .btn-danger { background: #d92d20; width: auto; padding: 5px 10px; margin: 0; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+
+  <h1>💰 Banque du Jeu</h1>
+
+  <!-- JOUEURS -->
+  <div class="card">
+    <h2>👥 Joueurs</h2>
+    <input type="text" id="nom-joueur" placeholder="Nom du joueur">
+    <button onclick="ajouterJoueur()">+ Ajouter un joueur</button>
+    <ul id="liste-joueurs"></ul>
+  </div>
+
+  <!-- JEUX -->
+  <div class="card">
+    <h2>🎮 Jeux</h2>
+    <input type="text" id="nom-jeu" placeholder="Nom du nouveau jeu">
+    <button onclick="ajouterJeu()">+ Ajouter un jeu</button>
+    <ul id="liste-jeux"></ul>
+  </div>
+
+  <!-- FIREBASE SCRIPTS -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getDatabase, ref, set, push, remove, onValue } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
+
+    // Configuration Firebase avec tes vraies clés
+    const firebaseConfig = {
+      apiKey: "AIzaSyBzJugWBBZf2pgelCAGNAjycBMZv64WHbc",
+      authDomain: "banque-jeu.firebaseapp.com",
+      projectId: "banque-jeu",
+      storageBucket: "banque-jeu.firebasestorage.app",
+      messagingSenderId: "333582703295",
+      appId: "1:333582703295:web:aedbdfe4fe3ecd1ed8c40a",
+      databaseURL: "https://banque-jeu-default-rtdb.firebaseio.com"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    const joueursRef = ref(db, 'joueurs');
+    const jeuxRef = ref(db, 'jeux');
+
+    // Écouteurs en temps réel
+    onValue(joueursRef, (snapshot) => {
+      const data = snapshot.val();
+      const ul = document.getElementById('liste-joueurs');
+      ul.innerHTML = '';
+      if (data) {
+        Object.entries(data).forEach(([id, joueur]) => {
+          ul.innerHTML += `
+            <li>
+              <span><b>${joueur.nom}</b></span>
+              <button class="btn-danger" onclick="supprimerEntree('joueurs/${id}')">🗑️</button>
+            </li>`;
+        });
+      } else {
+        ul.innerHTML = '<li>Aucun joueur enregistré.</li>';
+      }
+    });
+
+    onValue(jeuxRef, (snapshot) => {
+      const data = snapshot.val();
+      const ul = document.getElementById('liste-jeux');
+      ul.innerHTML = '';
+      if (data) {
+        Object.entries(data).forEach(([id, jeu]) => {
+          ul.innerHTML += `
+            <li>
+              <span>🎮 ${jeu.nom}</span>
+              <button class="btn-danger" onclick="supprimerEntree('jeux/${id}')">🗑️</button>
+            </li>`;
+        });
+      } else {
+        // Crée automatiquement le jeu "Défi" si la liste est vide au départ
+        push(jeuxRef, { nom: "Défi" });
+      }
+    });
+
+    // Fonctions globales
+    window.ajouterJoueur = function() {
+      const input = document.getElementById('nom-joueur');
+      if (input.value.trim() !== '') {
+        push(joueursRef, { nom: input.value.trim() });
+        input.value = '';
+      }
+    };
+
+    window.ajouterJeu = function() {
+      const input = document.getElementById('nom-jeu');
+      if (input.value.trim() !== '') {
+        push(jeuxRef, { nom: input.value.trim() });
+        input.value = '';
+      }
+    };
+
+    window.supprimerEntree = function(chemin) {
+      remove(ref(db, chemin));
+    };
+  </script>
+</body>
+</html>
