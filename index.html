@@ -116,20 +116,37 @@
     </div>
   </div>
 
-  <!-- ONGLET 3 : PRÊTS ENTRE JOUEURS -->
+  <!-- ONGLET 3 : PRÊTS ENTRE JOUEURS AVEC COMMISSION -->
   <div id="tab-prets" class="tab-content">
     <div class="card">
-      <h2>Transfert entre joueurs</h2>
-      <label>De (Émetteur) :</label>
+      <h2>Prêter à un joueur avec commission</h2>
+      <label>Prêteur (Émetteur) :</label>
       <select id="pret-de"></select>
       
-      <label>À (Bénéficiaire) :</label>
+      <label>Emprunteur (Bénéficiaire) :</label>
       <select id="pret-a"></select>
       
-      <label>Montant (€) :</label>
-      <input type="number" id="pret-montant" placeholder="ex: 20">
+      <label>Montant prêté (€) :</label>
+      <input type="number" id="pret-montant" placeholder="ex: 100">
       
-      <button onclick="validerPret()">Effectuer le transfert</button>
+      <label>Commission / Taux d'intérêt (%) :</label>
+      <input type="number" id="pret-taux" placeholder="ex: 10 (pour 10%)" value="0">
+      
+      <button onclick="validerPretJoueur()">Accorder le prêt entre joueurs</button>
+    </div>
+
+    <div class="card">
+      <h2>Rembourser un joueur</h2>
+      <label>Débiteur (Celui qui rembourse) :</label>
+      <select id="rembourse-joueur-de"></select>
+      
+      <label>Créancier (Celui qui reçoit) :</label>
+      <select id="rembourse-joueur-a"></select>
+      
+      <label>Montant (€) :</label>
+      <input type="number" id="rembourse-joueur-montant" placeholder="ex: 50">
+      
+      <button class="btn-success" onclick="validerRemboursementJoueur()">Effectuer le remboursement</button>
     </div>
   </div>
 
@@ -198,10 +215,10 @@
     const pinRef = ref(db, 'config/adminPin');
 
     let localJoueurs = {};
-    let currentPin = "1234"; // PIN par défaut
+    let currentPin = "1234";
     let isAdmin = false;
 
-    // Charger le code PIN depuis Firebase
+    // Charger le code PIN
     onValue(pinRef, (snapshot) => {
       if (snapshot.exists()) {
         currentPin = snapshot.val();
@@ -219,6 +236,8 @@
       const selectRembBq = document.getElementById('rembourse-joueur');
       const selectDe = document.getElementById('pret-de');
       const selectA = document.getElementById('pret-a');
+      const selectRembDe = document.getElementById('rembourse-joueur-de');
+      const selectRembA = document.getElementById('rembourse-joueur-a');
       const ulSoldes = document.getElementById('liste-soldes');
       const ulAdmin = document.getElementById('liste-joueurs');
 
@@ -227,25 +246,34 @@
       selectRembBq.innerHTML = '';
       selectDe.innerHTML = '';
       selectA.innerHTML = '';
+      selectRembDe.innerHTML = '';
+      selectRembA.innerHTML = '';
       ulSoldes.innerHTML = '';
       ulAdmin.innerHTML = '';
 
       Object.entries(localJoueurs).forEach(([id, j]) => {
         const solde = j.solde || 0;
         const dette = j.dette || 0;
+        const detteJoueurs = j.detteJoueurs || 0;
 
         selectBanque.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectPretBq.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectRembBq.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectDe.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectA.innerHTML += `<option value="${id}">${j.nom}</option>`;
+        selectRembDe.innerHTML += `<option value="${id}">${j.nom}</option>`;
+        selectRembA.innerHTML += `<option value="${id}">${j.nom}</option>`;
         
+        let dettesHtml = '';
+        if (dette > 0) dettesHtml += `<br><span class="dette">Dette Bq: ${dette} €</span>`;
+        if (detteJoueurs > 0) dettesHtml += `<br><span class="dette">Dette Joueur: ${detteJoueurs} €</span>`;
+
         ulSoldes.innerHTML += `
           <li>
             <div><b>${j.nom}</b></div>
             <div>
               <span class="solde">${solde} €</span>
-              ${dette > 0 ? `<br><span class="dette">Dette Bq: ${dette} €</span>` : ''}
+              ${dettesHtml}
             </div>
           </li>`;
           
@@ -273,7 +301,7 @@
       });
     });
 
-    // Gestion de l'authentification Admin
+    // Admin Auth
     window.deverrouillerAdmin = function() {
       const pinSaisi = prompt("Entrez le code PIN Admin :");
       if (pinSaisi === currentPin) {
@@ -324,11 +352,11 @@
       }
     };
 
-    // Actions
+    // Actions de base
     window.ajouterJoueur = function() {
       const input = document.getElementById('nom-joueur');
       if (input.value.trim() !== '') {
-        push(joueursRef, { nom: input.value.trim(), solde: 0, dette: 0 });
+        push(joueursRef, { nom: input.value.trim(), solde: 0, dette: 0, detteJoueurs: 0 });
         input.value = '';
       }
     };
@@ -366,7 +394,7 @@
       if (!jId || isNaN(montant) || montant <= 0) return;
 
       const joueur = localJoueurs[jId];
-      const montantARembourser = montant * 1.5; // +50%
+      const montantARembourser = montant * 1.5;
 
       const nouveauSolde = (joueur.solde || 0) + montant;
       const nouvelleDette = (joueur.dette || 0) + montantARembourser;
@@ -411,22 +439,56 @@
       document.getElementById('rembourse-montant').value = '';
     };
 
-    window.validerPret = function() {
+    // Prêt entre joueurs avec Taux/Commission
+    window.validerPretJoueur = function() {
       const deId = document.getElementById('pret-de').value;
       const aId = document.getElementById('pret-a').value;
       const montant = parseFloat(document.getElementById('pret-montant').value);
+      const taux = parseFloat(document.getElementById('pret-taux').value) || 0;
 
       if (!deId || !aId || deId === aId || isNaN(montant) || montant <= 0) return;
 
       const jDe = localJoueurs[deId];
       const jA = localJoueurs[aId];
 
+      const montantARembourser = montant * (1 + taux / 100);
+
+      // Le prêteur donne le montant de base, le bénéficiaire le reçoit
       set(ref(db, `joueurs/${deId}/solde`), (jDe.solde || 0) - montant);
       set(ref(db, `joueurs/${aId}/solde`), (jA.solde || 0) + montant);
+      
+      // La dette envers les joueurs est enregistrée chez l'emprunteur
+      set(ref(db, `joueurs/${aId}/detteJoueurs`), (jA.detteJoueurs || 0) + montantARembourser);
 
-      push(histoRef, { texte: `🤝 ${jDe.nom} ➡️ ${jA.nom} : ${montant} €`, date: new Date().toLocaleTimeString('fr-FR') });
+      const logTaux = taux > 0 ? ` (Taux : ${taux}% ➡️ Dette : ${montantARembourser} €)` : '';
+      push(histoRef, { texte: `🤝 Prêt : ${jDe.nom} ➡️ ${jA.nom} : ${montant} €${logTaux}`, date: new Date().toLocaleTimeString('fr-FR') });
 
       document.getElementById('pret-montant').value = '';
+      document.getElementById('pret-taux').value = '0';
+    };
+
+    // Remboursement entre joueurs
+    window.validerRemboursementJoueur = function() {
+      const deId = document.getElementById('rembourse-joueur-de').value;
+      const aId = document.getElementById('rembourse-joueur-a').value;
+      const montant = parseFloat(document.getElementById('rembourse-joueur-montant').value);
+
+      if (!deId || !aId || deId === aId || isNaN(montant) || montant <= 0) return;
+
+      const jDe = localJoueurs[deId];
+      const jA = localJoueurs[aId];
+
+      // Le débiteur paie, le créancier reçoit
+      set(ref(db, `joueurs/${deId}/solde`), (jDe.solde || 0) - montant);
+      set(ref(db, `joueurs/${aId}/solde`), (jA.solde || 0) + montant);
+      
+      // La dette joueurs du débiteur diminue
+      const nouvelleDette = Math.max(0, (jDe.detteJoueurs || 0) - montant);
+      set(ref(db, `joueurs/${deId}/detteJoueurs`), nouvelleDette);
+
+      push(histoRef, { texte: `💸 Remboursement : ${jDe.nom} ➡️ ${jA.nom} : ${montant} €`, date: new Date().toLocaleTimeString('fr-FR') });
+
+      document.getElementById('rembourse-joueur-montant').value = '';
     };
 
     window.supprimerEntree = function(chemin) {
