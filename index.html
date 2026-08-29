@@ -31,6 +31,8 @@
     .btn-danger-sm { background: #d92d20; width: auto; padding: 6px 12px; font-size: 0.85rem; }
     .btn-success { background: #079455; }
     .btn-secondary { background: #64748b; margin-top: 10px; }
+    .btn-joker { background: #7c3aed; width: auto; padding: 6px 10px; font-size: 0.85rem; margin-top: 5px; }
+    .btn-joker:disabled { background: #cbd5e1; cursor: not-allowed; }
     
     ul { list-style: none; padding: 0; margin: 0; }
     li { padding: 10px 0; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
@@ -39,6 +41,7 @@
     
     .solde { font-weight: bold; color: #089213; }
     .dette { font-weight: bold; color: #d92d20; }
+    .badge-joker { font-weight: bold; color: #7c3aed; }
     .info-taux { font-size: 0.85rem; color: #d92d20; font-weight: bold; margin-bottom: 10px; }
     .badge-status { font-size: 0.8rem; padding: 3px 8px; border-radius: 4px; font-weight: bold; }
     .status-attente { background: #fef3c7; color: #b45309; }
@@ -90,6 +93,7 @@
         <input type="number" id="banque-montant" placeholder="ex: 50">
         
         <button onclick="validerTransactionBanque()">Valider la transaction</button>
+        <button class="btn-secondary" onclick="donnerJokerAdmin()" style="background:#7c3aed;">🃏 Donner 1 Joker au joueur</button>
       </div>
     </div>
 
@@ -302,6 +306,7 @@
         const solde = j.solde || 0;
         const dette = j.dette || 0;
         const detteJoueurs = j.detteJoueurs || 0;
+        const jokers = j.jokers || 0;
 
         selectBanque.innerHTML += `<option value="${id}">${j.nom}</option>`;
         selectPretBq.innerHTML += `<option value="${id}">${j.nom}</option>`;
@@ -315,11 +320,17 @@
         let dettesHtml = '';
         if (dette > 0) dettesHtml += `<br><span class="dette">Dette Bq: ${dette} €</span>`;
         if (detteJoueurs > 0) dettesHtml += `<br><span class="dette">Dette Joueur: ${detteJoueurs} €</span>`;
+        if (jokers > 0) dettesHtml += `<br><span class="badge-joker">🃏 Jokers: ${jokers}</span>`;
+
+        const btnJokerDisabled = jokers <= 0 ? 'disabled' : '';
 
         ulSoldes.innerHTML += `
           <li>
-            <div><b>${j.nom}</b></div>
             <div>
+              <b>${j.nom}</b><br>
+              <button class="btn-joker" ${btnJokerDisabled} onclick="utiliserJoker('${id}')">🃏 Utiliser (${jokers})</button>
+            </div>
+            <div style="text-align:right;">
               <span class="solde">${solde} €</span>
               ${dettesHtml}
             </div>
@@ -347,7 +358,6 @@
         const jEmprunteur = localJoueurs[dem.emprunteurId]?.nom || "Inconnu";
         const jPreteur = localJoueurs[dem.preteurId]?.nom || "Inconnu";
 
-        // ÉTAPE 1 : Le prêteur doit fixer le taux et valider
         if (dem.statut === 'attente_preteur') {
           ulDemandes.innerHTML += `
             <li class="demande-item">
@@ -367,7 +377,6 @@
               </div>
             </li>`;
         } 
-        // ÉTAPE 2 : L'emprunteur accepte ou refuse le prêt proposé avec le taux
         else if (dem.statut === 'attente_emprunteur') {
           ulDemandes.innerHTML += `
             <li class="demande-item">
@@ -474,11 +483,12 @@
     // RÉINITIALISATIONS ADMIN
     window.reinitialiserComptes = function() {
       if (!isAdmin) return;
-      if (confirm("Remettre tous les soldes et dettes des joueurs à ZERO ?")) {
+      if (confirm("Remettre tous les soldes, dettes et jokers des joueurs à ZERO ?")) {
         Object.keys(localJoueurs).forEach(id => {
           set(ref(db, `joueurs/${id}/solde`), 0);
           set(ref(db, `joueurs/${id}/dette`), 0);
           set(ref(db, `joueurs/${id}/detteJoueurs`), 0);
+          set(ref(db, `joueurs/${id}/jokers`), 0);
         });
         remove(histoRef);
         remove(demandesRef);
@@ -509,7 +519,7 @@
         return;
       }
 
-      push(joueursRef, { nom: nom, pin: pin, solde: 0, dette: 0, detteJoueurs: 0 });
+      push(joueursRef, { nom: nom, pin: pin, solde: 0, dette: 0, detteJoueurs: 0, jokers: 0 });
       inputNom.value = '';
       inputPin.value = '';
     };
@@ -527,11 +537,107 @@
       const nouveauSolde = type === 'credit' ? (joueur.solde || 0) + montant : (joueur.solde || 0) - montant;
 
       set(ref(db, `joueurs/${jId}/solde`), nouveauSolde);
+
+      // Tirage aléatoire (20% de chance de gagner un joker lors d'un crédit)
+      if (type === 'credit' && Math.random() < 0.20) {
+        const nouveauxJokers = (joueur.jokers || 0) + 1;
+        set(ref(db, `joueurs/${jId}/jokers`), nouveauxJokers);
+        alert(`🎉 Chance ! ${joueur.nom} gagne 1 Joker Défi !`);
+      }
       
       const libelle = type === 'credit' ? `Banque ➡️ ${joueur.nom} : +${montant} €` : `${joueur.nom} ➡️ Banque : -${montant} €`;
       push(histoRef, { texte: libelle, date: new Date().toLocaleTimeString('fr-FR') });
 
       document.getElementById('banque-montant').value = '';
+    };
+
+    window.donnerJokerAdmin = function() {
+      if (!isAdmin) return;
+      const jId = document.getElementById('banque-joueur').value;
+      if (!jId) return;
+
+      const joueur = localJoueurs[jId];
+      const nouveauxJokers = (joueur.jokers || 0) + 1;
+      set(ref(db, `joueurs/${jId}/jokers`), nouveauxJokers);
+      
+      push(histoRef, { 
+        texte: `🃏 Admin a donné 1 Joker Défi à ${joueur.nom}`, 
+        date: new Date().toLocaleTimeString('fr-FR') 
+      });
+      alert(`1 Joker attribué à ${joueur.nom}`);
+    };
+
+    // LOGIQUE JOKER DEFI
+    window.utiliserJoker = function(lanceurId) {
+      const lanceur = localJoueurs[lanceurId];
+      if (!lanceur || (lanceur.jokers || 0) <= 0) {
+        alert("Aucun joker disponible !");
+        return;
+      }
+
+      const pinSaisi = prompt(`Code PIN de ${lanceur.nom} pour utiliser le Joker :`);
+      if (!verifierPinJoueur(lanceurId, pinSaisi)) {
+        alert("PIN incorrect !");
+        return;
+      }
+
+      // Sélection de la cible
+      const autresJoueurs = Object.entries(localJoueurs).filter(([id]) => id !== lanceurId);
+      if (autresJoueurs.length === 0) {
+        alert("Il faut au moins deux joueurs.");
+        return;
+      }
+
+      let listeNoms = autresJoueurs.map(([id, j], index) => `${index + 1}. ${j.nom}`).join("\n");
+      const choixIndex = prompt(`A quel joueur donnes-tu le défi oral ?\n\n${listeNoms}\n\nTapez le numéro du joueur :`);
+      
+      const idx = parseInt(choixIndex) - 1;
+      if (isNaN(idx) || idx < 0 || idx >= autresJoueurs.length) {
+        alert("Sélection invalide.");
+        return;
+      }
+
+      const [cibleId, cible] = autresJoueurs[idx];
+
+      // Consommation du joker
+      set(ref(db, `joueurs/${lanceurId}/jokers`), (lanceur.jokers || 1) - 1);
+
+      // Fenêtre de réponse au défi oral
+      const accepte = confirm(`🃏 JOKER DÉFI !\n\n${lanceur.nom} lance un défi oral à ${cible.nom}.\n\n${cible.nom}, acceptes-tu de relever le défi ?\n\n[OK] = Défi Relevé !\n[Annuler] = Refus (Pénalité de 50€ versée à ${lanceur.nom})`);
+
+      if (accepte) {
+        push(histoRef, {
+          texte: `✅ ${cible.nom} a accepté et relevé le défi oral de ${lanceur.nom} !`,
+          date: new Date().toLocaleTimeString('fr-FR')
+        });
+      } else {
+        // Application de la pénalité de 50€ avec prêt si fonds insuffisants
+        const montantPenalite = 50;
+        let soldePerdant = cible.solde || 0;
+        let dettePerdant = cible.dette || 0;
+        let soldeGagnant = lanceur.solde || 0;
+        const tauxBanque = 0.50; // Taux 50%
+
+        if (soldePerdant < montantPenalite) {
+          const manque = montantPenalite - soldePerdant;
+          const detteAjoutee = manque * (1 + tauxBanque);
+          dettePerdant += detteAjoutee;
+          soldePerdant = 0;
+        } else {
+          soldePerdant -= montantPenalite;
+        }
+
+        soldeGagnant += montantPenalite;
+
+        set(ref(db, `joueurs/${cibleId}/solde`), soldePerdant);
+        set(ref(db, `joueurs/${cibleId}/dette`), dettePerdant);
+        set(ref(db, `joueurs/${lanceurId}/solde`), soldeGagnant);
+
+        push(histoRef, {
+          texte: `❌ ${cible.nom} a refusé le défi de ${lanceur.nom}. Pénalité de 50€ versée (emprunt bancaire appliqué si besoin).`,
+          date: new Date().toLocaleTimeString('fr-FR')
+        });
+      }
     };
 
     window.accorderPretBanque = function() {
@@ -635,7 +741,6 @@
       document.getElementById('demande-pin').value = '';
     };
 
-    // Étape 1 prêteur : définit le taux et envoie l'offre
     window.proposerPret = function(demandeId) {
       const dem = localDemandes[demandeId];
       if (!dem) return;
@@ -661,7 +766,6 @@
       set(ref(db, `demandes_prets/${demandeId}/statut`), 'attente_emprunteur');
     };
 
-    // Étape 2 emprunteur : accepte définitivement l'offre
     window.finaliserPret = function(demandeId) {
       const dem = localDemandes[demandeId];
       if (!dem) return;
@@ -681,7 +785,6 @@
         return;
       }
 
-      // Transfert des fonds
       set(ref(db, `joueurs/${dem.preteurId}/solde`), soldePreteur - dem.montant);
       set(ref(db, `joueurs/${dem.emprunteurId}/solde`), (jEmprunteur.solde || 0) + dem.montant);
       set(ref(db, `joueurs/${dem.emprunteurId}/detteJoueurs`), (jEmprunteur.detteJoueurs || 0) + dem.montantARembourser);
