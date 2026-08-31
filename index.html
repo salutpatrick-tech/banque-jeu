@@ -524,19 +524,16 @@
       inputPin.value = '';
     };
 
-    // --- NOUVELLE FONCTION : TIRAGE JOKERS GLOBAL ---
-    // À chaque mouvement, on passe sur TOUS les joueurs
+    // TIRAGE JOKERS GLOBAL (20% de chance de gagner, 20% de perdre)
     function tirageJokersGlobal() {
       Object.entries(localJoueurs).forEach(([id, joueur]) => {
         let nbJokers = joueur.jokers || 0;
         let message = "";
         
-        // 20% de chance de gagner un joker
         if (Math.random() < 0.20) {
           nbJokers += 1;
           message = `🎉 Événement ! ${joueur.nom} a GAGNÉ 1 Joker Défi !`;
         } 
-        // 20% de chance de perdre un joker (s'il en a au moins un)
         else if (nbJokers > 0 && Math.random() < 0.20) {
           nbJokers -= 1;
           message = `💥 Pas de chance ! ${joueur.nom} a PERDU 1 Joker Défi !`;
@@ -545,7 +542,7 @@
         if (message !== "") {
           set(ref(db, `joueurs/${id}/jokers`), nbJokers);
           push(histoRef, { texte: message, date: new Date().toLocaleTimeString('fr-FR') });
-          alert(message); // Affiche une pop-up pour avertir immédiatement de l'événement
+          alert(message);
         }
       });
     }
@@ -569,7 +566,6 @@
 
       document.getElementById('banque-montant').value = '';
 
-      // Déclenchement du tirage global
       tirageJokersGlobal();
     };
 
@@ -589,15 +585,29 @@
       alert(`1 Joker attribué à ${joueur.nom}`);
     };
 
-    // LOGIQUE JOKER DEFI
+    // LOGIQUE JOKER DEFI (1 ou 2 JOKERS)
     window.utiliserJoker = function(lanceurId) {
       const lanceur = localJoueurs[lanceurId];
-      if (!lanceur || (lanceur.jokers || 0) <= 0) {
+      const jokersDispos = lanceur ? (lanceur.jokers || 0) : 0;
+
+      if (jokersDispos <= 0) {
         alert("Aucun joker disponible !");
         return;
       }
 
-      const pinSaisi = prompt(`Code PIN de ${lanceur.nom} pour utiliser le Joker :`);
+      // Choix du nombre de jokers
+      let nbJokersAUtiliser = 1;
+      if (jokersDispos >= 2) {
+        const choixNombre = prompt(`Tu as ${jokersDispos} jokers.\nCombien veux-tu en utiliser ?\n\n1 = Défi Normal (Pénalité de 50€)\n2 = SUPER DÉFI (Pénalité de 100€)\n\nTapez 1 ou 2 :`, "1");
+        nbJokersAUtiliser = parseInt(choixNombre);
+        
+        if (nbJokersAUtiliser !== 1 && nbJokersAUtiliser !== 2) {
+          alert("Choix invalide. Annulation.");
+          return;
+        }
+      }
+
+      const pinSaisi = prompt(`Code PIN de ${lanceur.nom} pour utiliser ${nbJokersAUtiliser} Joker(s) :`);
       if (!verifierPinJoueur(lanceurId, pinSaisi)) {
         alert("PIN incorrect !");
         return;
@@ -611,7 +621,7 @@
       }
 
       let listeNoms = autresJoueurs.map(([id, j], index) => `${index + 1}. ${j.nom}`).join("\n");
-      const choixIndex = prompt(`A quel joueur donnes-tu le défi oral ?\n\n${listeNoms}\n\nTapez le numéro du joueur :`);
+      const choixIndex = prompt(`À quel joueur donnes-tu le défi oral ?\n\n${listeNoms}\n\nTapez le numéro du joueur :`);
       
       const idx = parseInt(choixIndex) - 1;
       if (isNaN(idx) || idx < 0 || idx >= autresJoueurs.length) {
@@ -621,24 +631,27 @@
 
       const [cibleId, cible] = autresJoueurs[idx];
 
-      // Consommation du joker
-      set(ref(db, `joueurs/${lanceurId}/jokers`), (lanceur.jokers || 1) - 1);
+      // Consommation des jokers
+      set(ref(db, `joueurs/${lanceurId}/jokers`), jokersDispos - nbJokersAUtiliser);
+
+      // Définition de la pénalité (50€ pour 1 joker, 100€ pour 2 jokers)
+      const montantPenalite = nbJokersAUtiliser * 50;
+      const typeDefiTxt = nbJokersAUtiliser === 2 ? "🔥 SUPER DÉFI (2 Jokers)" : "🃏 JOKER DÉFI";
 
       // Fenêtre de réponse au défi oral
-      const accepte = confirm(`🃏 JOKER DÉFI !\n\n${lanceur.nom} lance un défi oral à ${cible.nom}.\n\n${cible.nom}, acceptes-tu de relever le défi ?\n\n[OK] = Défi Relevé !\n[Annuler] = Refus (Pénalité de 50€ versée à ${lanceur.nom})`);
+      const accepte = confirm(`${typeDefiTxt} !\n\n${lanceur.nom} lance un défi oral à ${cible.nom}.\n\n${cible.nom}, acceptes-tu de relever le défi ?\n\n[OK] = Défi Relevé !\n[Annuler] = Refus (Pénalité de ${montantPenalite}€ versée à ${lanceur.nom})`);
 
       if (accepte) {
         push(histoRef, {
-          texte: `✅ ${cible.nom} a accepté et relevé le défi oral de ${lanceur.nom} !`,
+          texte: `✅ ${cible.nom} a accepté et relevé le ${typeDefiTxt.toLowerCase()} de ${lanceur.nom} !`,
           date: new Date().toLocaleTimeString('fr-FR')
         });
       } else {
-        // Application de la pénalité de 50€ avec prêt si fonds insuffisants
-        const montantPenalite = 50;
+        // Application de la pénalité avec prêt bancaire auto si fonds insuffisants
         let soldePerdant = cible.solde || 0;
         let dettePerdant = cible.dette || 0;
         let soldeGagnant = lanceur.solde || 0;
-        const tauxBanque = 0.50; // Taux 50%
+        const tauxBanque = 0.50;
 
         if (soldePerdant < montantPenalite) {
           const manque = montantPenalite - soldePerdant;
@@ -656,11 +669,10 @@
         set(ref(db, `joueurs/${lanceurId}/solde`), soldeGagnant);
 
         push(histoRef, {
-          texte: `❌ ${cible.nom} a refusé le défi de ${lanceur.nom}. Pénalité de 50€ versée (emprunt bancaire appliqué si besoin).`,
+          texte: `❌ ${cible.nom} a refusé le ${typeDefiTxt.toLowerCase()} de ${lanceur.nom}. Pénalité de ${montantPenalite}€ versée (emprunt bancaire appliqué si besoin).`,
           date: new Date().toLocaleTimeString('fr-FR')
         });
         
-        // Un refus et transfert financier est un mouvement : déclenchement du tirage global
         tirageJokersGlobal();
       }
     };
@@ -691,7 +703,6 @@
       document.getElementById('pret-banque-montant').value = '';
       document.getElementById('pret-banque-pin').value = '';
 
-      // Déclenchement du tirage global
       tirageJokersGlobal();
     };
 
@@ -735,7 +746,6 @@
       document.getElementById('rembourse-montant').value = '';
       document.getElementById('rembourse-joueur-pin').value = '';
 
-      // Déclenchement du tirage global
       tirageJokersGlobal();
     };
 
@@ -827,7 +837,6 @@
 
       remove(ref(db, `demandes_prets/${demandeId}`));
 
-      // Déclenchement du tirage global
       tirageJokersGlobal();
     };
 
@@ -877,7 +886,6 @@
       document.getElementById('rembourse-joueur-montant').value = '';
       document.getElementById('rembourse-joueur-de-pin').value = '';
 
-      // Déclenchement du tirage global
       tirageJokersGlobal();
     };
 
