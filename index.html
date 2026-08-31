@@ -1,4 +1,591 @@
-﻿<!-- SCRIPTS -->
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banque du Jeu</title>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --border: #e2e8f0;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --warning: #f59e0b;
+    }
+
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 12px;
+      padding-bottom: 70px;
+    }
+
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+
+    header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+
+    h1 {
+      margin: 0 0 6px 0;
+      font-size: 1.5rem;
+    }
+
+
+    .admin-badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 0.8rem;
+      font-weight: bold;
+      background-color: #e2e8f0;
+      color: #64748b;
+    }
+
+
+    .admin-badge.active {
+      background-color: #dcfce7;
+      color: #15803d;
+    }
+
+
+    /* BARRE D'ONGLETS NAVIGATION FIXE EN BAS */
+    .nav-tabs {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      display: flex;
+      background-color: #ffffff;
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+      z-index: 1000;
+    }
+
+
+    .tab-btn {
+      flex: 1;
+      padding: 12px 4px;
+      border: none;
+      background: none;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      text-align: center;
+    }
+
+
+    .tab-btn.active {
+      color: var(--primary);
+      border-top: 3px solid var(--primary);
+    }
+
+
+    .tab-content {
+      display: none;
+    }
+
+
+    .tab-content.active {
+      display: block;
+    }
+
+
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      border: 1px solid var(--border);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+
+    h2 {
+      font-size: 1.1rem;
+      margin-top: 0;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+
+    label {
+      display: block;
+      font-size: 0.85rem;
+      font-weight: 600;
+      margin-top: 10px;
+      margin-bottom: 4px;
+    }
+
+
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      box-sizing: border-box;
+      font-size: 0.95rem;
+    }
+
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+
+    button {
+      background-color: var(--primary);
+      color: white;
+      border: none;
+      font-weight: 600;
+      margin-top: 12px;
+      cursor: pointer;
+    }
+
+
+    button:active {
+      opacity: 0.9;
+    }
+
+
+    .btn-danger { background-color: var(--danger); }
+    .btn-success { background-color: var(--success); }
+    .btn-warning { background-color: var(--warning); color: #000; }
+    .btn-secondary { background-color: #64748b; }
+
+
+    .btn-danger-sm {
+      background-color: var(--danger);
+      color: white;
+      border: none;
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      width: auto;
+      margin: 0;
+      cursor: pointer;
+    }
+
+
+    .btn-joker {
+      background-color: #8b5cf6;
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      width: auto;
+      margin-top: 6px;
+      cursor: pointer;
+    }
+    .btn-joker:disabled {
+      background-color: #cbd5e1;
+      cursor: not-allowed;
+    }
+
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+
+    li {
+      padding: 10px 0;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+
+    li:last-child {
+      border-bottom: none;
+    }
+
+
+    .solde {
+      font-weight: bold;
+      color: var(--success);
+    }
+
+
+    .dette {
+      font-size: 0.8rem;
+      color: var(--danger);
+    }
+
+
+    .badge-joker {
+      font-size: 0.8rem;
+      color: #8b5cf6;
+      font-weight: bold;
+    }
+
+
+    /* BANNIÈRE CHRONO */
+    .chrono-banner {
+      background: linear-gradient(135deg, #1e1b4b, #312e81);
+      color: #ffffff;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      text-align: center;
+      border: 2px solid #6366f1;
+    }
+
+
+    .chrono-title {
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 8px;
+      color: #a5b4fc;
+    }
+
+
+    .chrono-display {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin: 12px 0;
+    }
+
+
+    .chrono-unit {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 8px 12px;
+      border-radius: 8px;
+      min-width: 45px;
+    }
+
+
+    .chrono-number {
+      font-size: 1.4rem;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+
+    .chrono-label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: #c7d2fe;
+    }
+
+
+    .admin-only {
+      display: none;
+    }
+
+
+    .demande-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+      background: #f1f5f9;
+      padding: 10px;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+
+
+    .demande-actions {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+
+
+    .badge-status {
+      font-size: 0.75rem;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: bold;
+    }
+    .status-attente { background: #fef3c7; color: #92400e; }
+    .status-proposition { background: #e0e7ff; color: #3730a3; }
+  </style>
+</head>
+<body>
+
+
+  <div class="container">
+    <header>
+      <h1>🏦 Banque du Jeu</h1>
+      <span id="admin-badge" class="admin-badge">🔒 Mode Joueur</span>
+    </header>
+
+
+    <!-- BANNIÈRE CHRONOMÈTRE GLOBAL -->
+    <div id="chrono-banner" class="chrono-banner" style="display: none;">
+      <div id="chrono-description" class="chrono-title">⏱️ Défi en cours</div>
+      <div class="chrono-display">
+        <div class="chrono-unit"><div id="t-jours" class="chrono-number">0</div><div class="chrono-label">Jours</div></div>
+        <div class="chrono-unit"><div id="t-heures" class="chrono-number">00</div><div class="chrono-label">Heures</div></div>
+        <div class="chrono-unit"><div id="t-minutes" class="chrono-number">00</div><div class="chrono-label">Min</div></div>
+        <div class="chrono-unit"><div id="t-secondes" class="chrono-number">00</div><div class="chrono-label">Sec</div></div>
+      </div>
+      <small id="chrono-date-fin" style="color:#a5b4fc;"></small>
+    </div>
+
+
+    <!-- TAB 1 : VUE D'ENSEMBLE & SOLDES -->
+    <div id="tab-soldes" class="tab-content active">
+      <div class="card">
+        <h2>💰 Soldes des Joueurs</h2>
+        <ul id="liste-soldes">
+          <li style="text-align:center; color:#64748b;">Chargement des données...</li>
+        </ul>
+      </div>
+
+
+      <div class="card">
+        <h2>📜 Dernières Opérations</h2>
+        <ul id="liste-historique">
+          <li style="text-align:center; color:#64748b;">Chargement de l'historique...</li>
+        </ul>
+      </div>
+    </div>
+
+
+    <!-- TAB 2 : DEFI CHRONO (ADMIN) -->
+    <div id="tab-chrono" class="tab-content">
+      <div class="card">
+        <h2>⏱️ Lancer un Défi Chronométré</h2>
+        <div id="chrono-sec-lock">
+          <label>Intitulé du Défi :</label>
+          <input type="text" id="chrono-titre-input" placeholder="ex: Défi de la semaine">
+          
+          <label>Date et Heure de Fin :</label>
+          <input type="datetime-local" id="chrono-date-input">
+
+
+          <button class="btn-warning" onclick="lancerChronoGlobal()">🚀 Démarrer le Compte à Rebours</button>
+          <button class="btn-danger" onclick="stopperChrono()" style="margin-top:8px;">🛑 Arrêter / Masquer le Chrono</button>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- TAB 3 : BANQUE & EMPRUNTS -->
+    <div id="tab-banque" class="tab-content">
+      <div class="card">
+        <h2>🏛️ Opérations Banque (Admin)</h2>
+        <div id="banque-sec-lock">
+          <p style="font-size:0.85rem; color:#64748b;">Connectez-vous en Mode Admin pour gérer les transactions directes.</p>
+        </div>
+        <div class="admin-only">
+          <label>Joueur :</label>
+          <select id="banque-joueur"></select>
+
+
+          <label>Type d'opération :</label>
+          <select id="banque-type">
+            <option value="credit">➕ Créditer (Ajouter de l'argent)</option>
+            <option value="debit">➖ Débiter (Retirer de l'argent)</option>
+          </select>
+
+
+          <label>Montant (€) :</label>
+          <input type="number" id="banque-montant" placeholder="Montant">
+
+
+          <button class="btn-success" onclick="validerTransactionBanque()">Valider l'opération</button>
+          <button class="btn-warning" onclick="donnerJokerAdmin()" style="margin-top:8px;">🃏 Donner 1 Joker Défi</button>
+        </div>
+      </div>
+
+
+      <div class="card">
+        <h2>📈 Emprunt à la Banque (Taux : 50%)</h2>
+        <label>Joueur Emprunteur :</label>
+        <select id="pret-banque-joueur"></select>
+
+
+        <label>Code PIN du Joueur :</label>
+        <input type="password" id="pret-banque-pin" maxlength="4" placeholder="4 chiffres">
+
+
+        <label>Montant Emprunté (€) :</label>
+        <input type="number" id="pret-banque-montant" placeholder="Montant">
+
+
+        <button onclick="accorderPretBanque()">Valider l'Emprunt Banque</button>
+      </div>
+
+
+      <div class="card">
+        <h2>📉 Rembourser la Banque</h2>
+        <label>Joueur :</label>
+        <select id="rembourse-joueur"></select>
+
+
+        <label>Code PIN du Joueur :</label>
+        <input type="password" id="rembourse-joueur-pin" maxlength="4" placeholder="4 chiffres">
+
+
+        <label>Montant à Rembourser (€) :</label>
+        <input type="number" id="rembourse-montant" placeholder="Montant">
+
+
+        <button class="btn-success" onclick="rembourserBanque()">Rembourser la Banque</button>
+      </div>
+    </div>
+
+
+    <!-- TAB 4 : ÉCHANGES ENTRE JOUEURS -->
+    <div id="tab-echanges" class="tab-content">
+      <div class="card">
+        <h2>📩 Demandes de Prêt entre Joueurs</h2>
+        <ul id="liste-demandes-prets">
+          <li style="text-align:center; color:#64748b;">Aucune demande en attente</li>
+        </ul>
+      </div>
+
+
+      <div class="card">
+        <h2>🤝 Créer une Demande de Prêt</h2>
+        <label>Emprunteur (Moi) :</label>
+        <select id="demande-a"></select>
+
+
+        <label>Mon Code PIN :</label>
+        <input type="password" id="demande-pin" maxlength="4" placeholder="4 chiffres">
+
+
+        <label>Prêteur (Demander à) :</label>
+        <select id="demande-de"></select>
+
+
+        <label>Montant Demandé (€) :</label>
+        <input type="number" id="demande-montant" placeholder="Montant">
+
+
+        <button onclick="creerDemandePret()">Envoyer la Demande</button>
+      </div>
+
+
+      <div class="card">
+        <h2>💸 Rembourser un Autre Joueur</h2>
+        <label>Joueur qui Rembourse (Débiteur) :</label>
+        <select id="rembourse-joueur-de"></select>
+
+
+        <label>Code PIN du Débiteur :</label>
+        <input type="password" id="rembourse-joueur-de-pin" maxlength="4" placeholder="4 chiffres">
+
+
+        <label>Joueur Destinataire (Créancier) :</label>
+        <select id="rembourse-joueur-a"></select>
+
+
+        <label>Montant (€) :</label>
+        <input type="number" id="rembourse-joueur-montant" placeholder="Montant">
+
+
+        <button class="btn-success" onclick="validerRemboursementJoueur()">Valider le Remboursement</button>
+      </div>
+    </div>
+
+
+    <!-- TAB 5 : CONFIGURATION & ADMIN -->
+    <div id="tab-config" class="tab-content">
+      <div class="card">
+        <h2>🔒 Authentification Admin</h2>
+        <p style="font-size:0.85rem; color:#64748b;">Déverrouillez le mode Admin pour accéder à la suppression d'historique et à la gestion des joueurs.</p>
+        <button id="btn-lock-admin" onclick="deverrouillerAdmin()">Déverrouiller le Mode Admin</button>
+        <button id="btn-unlock-admin" class="btn-secondary" onclick="verrouillerAdmin()" style="display:none; margin-top:8px;">Verrouiller / Quitter Mode Admin</button>
+      </div>
+
+
+      <div id="config-lock" class="card">
+        <p style="font-size:0.85rem; color:#64748b; text-align:center;">Section réservée à l'administrateur.</p>
+      </div>
+
+
+      <div class="admin-only">
+        <div class="card">
+          <h2>👤 Ajouter un Joueur</h2>
+          <label>Nom du joueur :</label>
+          <input type="text" id="nom-joueur" placeholder="Ex: Jean">
+
+
+          <label>Code PIN Initial (4 chiffres) :</label>
+          <input type="password" id="pin-joueur" maxlength="4" placeholder="Ex: 1234">
+
+
+          <button class="btn-success" onclick="ajouterJoueur()">Créer le joueur</button>
+        </div>
+
+
+        <div class="card">
+          <h2>🔑 Réinitialiser PIN Joueur</h2>
+          <label>Joueur :</label>
+          <select id="reset-pin-joueur"></select>
+
+
+          <label>Nouveau PIN (4 chiffres) :</label>
+          <input type="password" id="reset-pin-valeur" maxlength="4" placeholder="Ex: 5678">
+
+
+          <button class="btn-warning" onclick="reinitialiserPinJoueur()">Mettre à jour le PIN</button>
+        </div>
+
+
+        <div class="card">
+          <h2>⚙️ Sécurité Admin</h2>
+          <label>Changer le Code PIN Admin :</label>
+          <input type="password" id="nouveau-pin" placeholder="Nouveau PIN">
+          <button onclick="changerPin()">Modifier PIN Admin</button>
+        </div>
+
+
+        <div class="card">
+          <h2>👥 Liste des Joueurs</h2>
+          <ul id="liste-joueurs"></ul>
+        </div>
+
+
+        <div class="card">
+          <h2>🚨 Zone Danger</h2>
+          <button class="btn-warning" onclick="reinitialiserComptes()">Remise à ZÉRO des Soldes & Dettes</button>
+          <button class="btn-danger" onclick="reinitialiserTout()" style="margin-top:8px;">Supprimer TOUT (Joueurs & Historique)</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- NAVIGATION FLOTTANTE BAS DE PAGE -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" onclick="showTab('soldes')">📊 Soldes</button>
+    <button class="tab-btn" onclick="showTab('banque')">🏛️ Banque</button>
+    <button class="tab-btn" onclick="showTab('echanges')">🤝 Échanges</button>
+    <button class="tab-btn" onclick="showTab('chrono')">⏱️ Défi</button>
+    <button class="tab-btn" onclick="showTab('config')">⚙️ Admin</button>
+  </nav>
+
+
+  <!-- SCRIPTS MODULE FIREBASE -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getDatabase, ref, set, push, remove, onValue, get } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
@@ -33,7 +620,7 @@
     let timerInterval = null;
 
 
-    // Suppression d'un élément d'historique (Rendue globale)
+    // SUPPRESSION HISTORIQUE (ATTACHÉE À WINDOW)
     window.supprimerHistorique = function(id) {
       if (!isAdmin) {
         alert("Seul l'administrateur peut supprimer un élément de l'historique.");
@@ -45,7 +632,7 @@
     };
 
 
-    // Synchronisation PIN Admin
+    // SYNCHRONISATION PIN ADMIN
     onValue(pinRef, (snapshot) => {
       if (snapshot.exists()) {
         currentPin = snapshot.val();
@@ -55,7 +642,7 @@
     });
 
 
-    // SYNCHRONISATION DU CHRONOMÈTRE DEFI
+    // CHRONOMÈTRE DEFI
     onValue(chronoRef, (snapshot) => {
       const data = snapshot.val();
       const banner = document.getElementById('chrono-banner');
@@ -134,7 +721,7 @@
 
 
       alert("Le chrono a été activé pour tous les joueurs !");
-      showTab('banque');
+      window.showTab('soldes');
     };
 
 
@@ -149,7 +736,7 @@
     };
 
 
-    // Verification PIN Joueur
+    // VÉRIFICATION PIN JOUEUR
     function verifierPinJoueur(joueurId, pinSaisi) {
       const joueur = localJoueurs[joueurId];
       if (!joueur) return false;
@@ -158,7 +745,7 @@
     }
 
 
-    // Synchronisation Joueurs & Menus
+    // SYNCHRONISATION JOUEURS & MENUS
     onValue(joueursRef, (snapshot) => {
       localJoueurs = snapshot.val() || {};
       
@@ -229,7 +816,7 @@
     });
 
 
-    // Synchronisation Demandes
+    // SYNCHRONISATION DEMANDES
     onValue(demandesRef, (snapshot) => {
       localDemandes = snapshot.val() || {};
       const ulDemandes = document.getElementById('liste-demandes-prets');
@@ -290,7 +877,7 @@
     });
 
 
-    // Synchronisation Historique avec bouton de suppression point par point
+    // SYNCHRONISATION HISTORIQUE
     function afficherHistorique(snapshotData) {
       const data = snapshotData || {};
       const ul = document.getElementById('liste-historique');
@@ -325,7 +912,7 @@
     });
 
 
-    // Auth Admin
+    // AUTH ADMIN
     window.deverrouillerAdmin = function() {
       const pinSaisi = prompt("Entrez le code PIN Admin :");
       if (pinSaisi === currentPin) {
@@ -347,20 +934,26 @@
       const badge = document.getElementById('admin-badge');
       const banqueLock = document.getElementById('banque-sec-lock');
       const configLock = document.getElementById('config-lock');
+      const btnLockAdmin = document.getElementById('btn-lock-admin');
+      const btnUnlockAdmin = document.getElementById('btn-unlock-admin');
       const adminElements = document.querySelectorAll('.admin-only');
 
 
       if (isAdmin) {
         badge.textContent = "🔓 Mode Admin Actif";
         badge.classList.add('active');
-        banqueLock.style.display = 'none';
-        configLock.style.display = 'none';
+        if (banqueLock) banqueLock.style.display = 'none';
+        if (configLock) configLock.style.display = 'none';
+        btnLockAdmin.style.display = 'none';
+        btnUnlockAdmin.style.display = 'block';
         adminElements.forEach(el => el.style.display = 'block');
       } else {
         badge.textContent = "🔒 Mode Joueur";
         badge.classList.remove('active');
-        banqueLock.style.display = 'block';
-        configLock.style.display = 'block';
+        if (banqueLock) banqueLock.style.display = 'block';
+        if (configLock) configLock.style.display = 'block';
+        btnLockAdmin.style.display = 'block';
+        btnUnlockAdmin.style.display = 'none';
         adminElements.forEach(el => el.style.display = 'none');
       }
 
@@ -375,7 +968,6 @@
       }
 
 
-      // Recharger l'historique pour afficher immédiatement les corbeilles si Admin
       get(histoRef).then((snapshot) => {
         afficherHistorique(snapshot.val());
       });
@@ -442,7 +1034,7 @@
     };
 
 
-    // Actions Joueurs
+    // ACTIONS JOUEURS
     window.ajouterJoueur = function() {
       const inputNom = document.getElementById('nom-joueur');
       const inputPin = document.getElementById('pin-joueur');
@@ -905,7 +1497,14 @@
       document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
       document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
       
-      document.getElementById(`tab-${tabName}`).classList.add('active');
-      event.target.classList.add('active');
+      const targetContent = document.getElementById(`tab-${tabName}`);
+      if (targetContent) targetContent.classList.add('active');
+
+
+      if (window.event && window.event.target) {
+        window.event.target.classList.add('active');
+      }
     };
   </script>
+</body>
+</html>
