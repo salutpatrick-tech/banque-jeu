@@ -524,6 +524,32 @@
       inputPin.value = '';
     };
 
+    // --- NOUVELLE FONCTION : TIRAGE JOKERS GLOBAL ---
+    // À chaque mouvement, on passe sur TOUS les joueurs
+    function tirageJokersGlobal() {
+      Object.entries(localJoueurs).forEach(([id, joueur]) => {
+        let nbJokers = joueur.jokers || 0;
+        let message = "";
+        
+        // 20% de chance de gagner un joker
+        if (Math.random() < 0.20) {
+          nbJokers += 1;
+          message = `🎉 Événement ! ${joueur.nom} a GAGNÉ 1 Joker Défi !`;
+        } 
+        // 20% de chance de perdre un joker (s'il en a au moins un)
+        else if (nbJokers > 0 && Math.random() < 0.20) {
+          nbJokers -= 1;
+          message = `💥 Pas de chance ! ${joueur.nom} a PERDU 1 Joker Défi !`;
+        }
+
+        if (message !== "") {
+          set(ref(db, `joueurs/${id}/jokers`), nbJokers);
+          push(histoRef, { texte: message, date: new Date().toLocaleTimeString('fr-FR') });
+          alert(message); // Affiche une pop-up pour avertir immédiatement de l'événement
+        }
+      });
+    }
+
     window.validerTransactionBanque = function() {
       if (!isAdmin) return;
       
@@ -537,18 +563,14 @@
       const nouveauSolde = type === 'credit' ? (joueur.solde || 0) + montant : (joueur.solde || 0) - montant;
 
       set(ref(db, `joueurs/${jId}/solde`), nouveauSolde);
-
-      // Tirage aléatoire (20% de chance de gagner un joker lors d'un crédit)
-      if (type === 'credit' && Math.random() < 0.20) {
-        const nouveauxJokers = (joueur.jokers || 0) + 1;
-        set(ref(db, `joueurs/${jId}/jokers`), nouveauxJokers);
-        alert(`🎉 Chance ! ${joueur.nom} gagne 1 Joker Défi !`);
-      }
       
       const libelle = type === 'credit' ? `Banque ➡️ ${joueur.nom} : +${montant} €` : `${joueur.nom} ➡️ Banque : -${montant} €`;
       push(histoRef, { texte: libelle, date: new Date().toLocaleTimeString('fr-FR') });
 
       document.getElementById('banque-montant').value = '';
+
+      // Déclenchement du tirage global
+      tirageJokersGlobal();
     };
 
     window.donnerJokerAdmin = function() {
@@ -637,6 +659,9 @@
           texte: `❌ ${cible.nom} a refusé le défi de ${lanceur.nom}. Pénalité de 50€ versée (emprunt bancaire appliqué si besoin).`,
           date: new Date().toLocaleTimeString('fr-FR')
         });
+        
+        // Un refus et transfert financier est un mouvement : déclenchement du tirage global
+        tirageJokersGlobal();
       }
     };
 
@@ -665,6 +690,9 @@
 
       document.getElementById('pret-banque-montant').value = '';
       document.getElementById('pret-banque-pin').value = '';
+
+      // Déclenchement du tirage global
+      tirageJokersGlobal();
     };
 
     window.rembourserBanque = function() {
@@ -706,6 +734,9 @@
 
       document.getElementById('rembourse-montant').value = '';
       document.getElementById('rembourse-joueur-pin').value = '';
+
+      // Déclenchement du tirage global
+      tirageJokersGlobal();
     };
 
     // LOGIQUE PRÊT ENTRE JOUEURS
@@ -795,6 +826,9 @@
       });
 
       remove(ref(db, `demandes_prets/${demandeId}`));
+
+      // Déclenchement du tirage global
+      tirageJokersGlobal();
     };
 
     window.refuserDemandePret = function(demandeId) {
@@ -842,6 +876,9 @@
 
       document.getElementById('rembourse-joueur-montant').value = '';
       document.getElementById('rembourse-joueur-de-pin').value = '';
+
+      // Déclenchement du tirage global
+      tirageJokersGlobal();
     };
 
     window.supprimerEntree = function(chemin) {
