@@ -520,15 +520,42 @@
       });
     });
 
-    // Synchronisation Historique
+    // Synchronisation Historique avec bouton de suppression point par point
     onValue(histoRef, (snapshot) => {
       const data = snapshot.val() || {};
       const ul = document.getElementById('liste-historique');
       ul.innerHTML = '';
-      Object.values(data).reverse().forEach((item) => {
-        ul.innerHTML += `<li><small>${item.date}</small><br><b>${item.texte}</b></li>`;
+
+      const entrees = Object.entries(data).reverse();
+
+      if (entrees.length === 0) {
+        ul.innerHTML = '<li style="text-align:center; color:#64748b;">Aucun historique pour le moment</li>';
+        return;
+      }
+
+      entrees.forEach(([id, item]) => {
+        const deleteBtn = isAdmin ? `<button class="btn-danger-sm" onclick="supprimerHistorique('${id}')">🗑️</button>` : '';
+        ul.innerHTML += `
+          <li>
+            <div>
+              <small>${item.date}</small><br>
+              <b>${item.texte}</b>
+            </div>
+            ${deleteBtn}
+          </li>`;
       });
     });
+
+    // Supprimer un élément précis de l'historique
+    window.supprimerHistorique = function(id) {
+      if (!isAdmin) {
+        alert("Seul l'administrateur peut supprimer un élément de l'historique.");
+        return;
+      }
+      if (confirm("Voulez-vous vraiment supprimer cet événement de l'historique ?")) {
+        remove(ref(db, `historique/${id}`));
+      }
+    };
 
     // Auth Admin
     window.deverrouillerAdmin = function() {
@@ -574,6 +601,9 @@
           ulAdmin.innerHTML += `<li><span>👤 ${j.nom}</span> ${deleteBtn}</li>`;
         });
       }
+
+      // Recharger la liste de l'historique pour afficher/masquer les boutons de suppression
+      const histoVal = histoRef;
     }
 
     window.changerPin = function() {
