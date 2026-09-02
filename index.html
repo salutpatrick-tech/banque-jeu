@@ -56,7 +56,6 @@
             color: #15803d;
         }
 
-        /* BARRE D'ONGLETS NAVIGATION FIXE EN BAS */
         .nav-tabs {
             position: fixed;
             bottom: 0;
@@ -150,7 +149,6 @@
         .btn-danger { background-color: var(--danger); }
         .btn-success { background-color: var(--success); }
         .btn-warning { background-color: var(--warning); color: #000; }
-        .btn-secondary { background-color: #64748b; }
 
         .btn-danger-sm {
             background-color: var(--danger);
@@ -162,23 +160,6 @@
             width: auto;
             margin: 0;
             cursor: pointer;
-        }
-
-        .btn-joker {
-            background-color: #8b5cf6;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            width: auto;
-            margin-top: 6px;
-            cursor: pointer;
-        }
-
-        .btn-joker:disabled {
-            background-color: #cbd5e1;
-            cursor: not-allowed;
         }
 
         ul {
@@ -204,18 +185,12 @@
             color: var(--success);
         }
 
-        .dette {
-            font-size: 0.8rem;
-            color: var(--danger);
-        }
-
         .badge-joker {
             font-size: 0.8rem;
             color: #8b5cf6;
             font-weight: bold;
         }
 
-        /* BANNIÈRE CHRONO GLOBAL */
         .chrono-banner {
             background: linear-gradient(135deg, #1e1b4b, #312e81);
             color: #ffffff;
@@ -259,7 +234,6 @@
             color: #c7d2fe;
         }
 
-        /* BANNIÈRE JOKER SURPRISE D'INACTIVITÉ */
         #alerte-joker-surprise {
             display: none;
             background: linear-gradient(135deg, #f59e0b, #ef4444);
@@ -297,17 +271,11 @@
             gap: 8px;
             width: 100%;
         }
-
-        .badge-status {
-            font-size: 0.75rem;
-            padding: 2px 6px;
-            border-radius: 4px;
-            font-weight: bold;
-        }
-
-        .status-attente { background: #fef3c7; color: #92400e; }
-        .status-proposition { background: #e0e7ff; color: #3730a3; }
     </style>
+
+    <!-- SDK Firebase v8 via CDN -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
@@ -415,7 +383,7 @@
             </div>
         </div>
 
-        <!-- ONGLET 4 : ADMINISTRATION (PROTÉGÉ) -->
+        <!-- ONGLET 4 : ADMINISTRATION -->
         <div id="tab-admin" class="tab-content">
             <div class="card">
                 <h2>🔑 Mode Administrateur</h2>
@@ -463,55 +431,50 @@
         <button class="tab-btn" onclick="changerOnglet('admin', this)">⚙️ Admin</button>
     </nav>
 
-    <!-- SDK Firebase Modules -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getDatabase, ref, set, push, onValue, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-
-        // Configuration Firebase
+    <script>
+        // Configuration Firebase extraite de la capture d'écran
         const firebaseConfig = {
-            apiKey: "VOTRE_API_KEY",
-            authDomain: "VOTRE_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://VOTRE_PROJECT_ID-default-rtdb.firebaseio.com",
-            projectId: "VOTRE_PROJECT_ID",
-            storageBucket: "VOTRE_PROJECT_ID.appspot.com",
-            messagingSenderId: "VOTRE_SENDER_ID",
-            appId: "VOTRE_APP_ID"
+            apiKey: "AiZaSyBzJugWBBzfzpgelCAGNAjycBMZv64WHbc",
+            authDomain: "banque-jeu.firebaseapp.com",
+            databaseURL: "https://banque-jeu-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "banque-jeu",
+            storageBucket: "banque-jeu.firebasestorage.app",
+            messagingSenderId: "333582703295",
+            appId: "1:333582703295:web:aedbdfe4fe3ecd1ed8c40a"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const db = getDatabase(app);
+        // Initialisation Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
 
         // Références Firebase
-        const joueursRef = ref(db, 'joueurs');
-        const histoRef = ref(db, 'historique');
-        const demandesRef = ref(db, 'demandes');
-        const chronoRef = ref(db, 'config/chrono');
-        const derniereActiviteRef = ref(db, 'config/derniereActivite');
-        const alerteRef = ref(db, 'config/alerteJokerActive');
+        const joueursRef = db.ref('joueurs');
+        const histoRef = db.ref('historique');
+        const demandesRef = db.ref('demandes');
+        const chronoRef = db.ref('config/chrono');
+        const derniereActiviteRef = db.ref('config/derniereActivite');
+        const alerteRef = db.ref('config/alerteJokerActive');
 
-        // Variables globales locales
+        // Variables globales
         window.localJoueurs = {};
         window.isAdmin = false;
         let chronoInterval = null;
 
-        // -------------------------------------------------------------
         // NAVIGATION PAR ONGLETS
-        // -------------------------------------------------------------
-        window.changerOnglet = function(tabId, element) {
+        function changerOnglet(tabId, element) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
 
-            document.getElementById(`tab-${tabId}`).classList.add('active');
+            document.getElementById('tab-' + tabId).classList.add('active');
             element.classList.add('active');
-        };
+        }
 
-        // -------------------------------------------------------------
-        // MODE ADMINISTRATEUR
-        // -------------------------------------------------------------
-        window.connexionAdmin = function() {
+        // MODE ADMIN
+        function connexionAdmin() {
             const pin = document.getElementById('admin-pin').value;
-            if (pin === "1234") { // Code Admin par défaut
+            if (pin === "1234") {
                 window.isAdmin = true;
                 document.getElementById('admin-badge').textContent = "🔓 Mode Admin";
                 document.getElementById('admin-badge').classList.add('active');
@@ -522,21 +485,19 @@
             } else {
                 alert("Code Administrateur incorrect.");
             }
-        };
+        }
 
-        window.deconnexionAdmin = function() {
+        function deconnexionAdmin() {
             window.isAdmin = false;
             document.getElementById('admin-badge').textContent = "🔒 Mode Joueur";
             document.getElementById('admin-badge').classList.remove('active');
             document.getElementById('admin-auth-box').style.display = 'block';
             document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
             actualiserAffichageJoueurs();
-        };
+        }
 
-        // -------------------------------------------------------------
-        // SYNCHRONISATION BANQUE & JOUEURS
-        // -------------------------------------------------------------
-        onValue(joueursRef, (snapshot) => {
+        // ÉCOUTE DES JOUEURS
+        joueursRef.on('value', (snapshot) => {
             window.localJoueurs = snapshot.val() || {};
             actualiserAffichageJoueurs();
         });
@@ -558,47 +519,39 @@
                 return;
             }
 
-            Object.entries(data).forEach(([id, j]) => {
-                // Remplissage de la liste
+            Object.keys(data).forEach(id => {
+                const j = data[id];
+
                 const li = document.createElement('li');
-                li.innerHTML = `
-                    <div>
-                        <strong>${j.nom}</strong>
-                        <div class="solde">${j.solde || 0} €</div>
-                        <div class="badge-joker">🃏 Jokers : ${j.jokers || 0} / 2</div>
-                    </div>
-                    <div>
-                        ${window.isAdmin ? `<button class="btn-danger-sm" onclick="supprimerJoueur('${id}')">❌</button>` : ''}
-                    </div>
-                `;
+                li.innerHTML = '<div>' +
+                    '<strong>' + j.nom + '</strong>' +
+                    '<div class="solde">' + (j.solde || 0) + ' €</div>' +
+                    '<div class="badge-joker">🃏 Jokers : ' + (j.jokers || 0) + ' / 2</div>' +
+                    '</div>' +
+                    '<div>' +
+                    (window.isAdmin ? '<button class="btn-danger-sm" onclick="supprimerJoueur(\'' + id + '\')">❌</button>' : '') +
+                    '</div>';
                 listeUi.appendChild(li);
 
-                // Option des menus déroulants
-                const opt1 = new Option(j.nom, id);
-                const opt2 = new Option(j.nom, id);
-                const opt3 = new Option(j.nom, id);
-                selectTransac.add(opt1);
-                selectEmetteur.add(opt2);
-                selectDest.add(opt3);
+                selectTransac.options.add(new Option(j.nom, id));
+                selectEmetteur.options.add(new Option(j.nom, id));
+                selectDest.options.add(new Option(j.nom, id));
             });
         }
 
-        // -------------------------------------------------------------
-        // ACTIONS ET TRANSACTIONS
-        // -------------------------------------------------------------
         function verifierPin(joueurId) {
             const joueur = window.localJoueurs[joueurId];
             if (!joueur) return false;
-            const pinSaisi = prompt(`Code PIN de ${joueur.nom} :`);
+            const pinSaisi = prompt('Code PIN de ' + joueur.nom + ' :');
             return pinSaisi === joueur.pin;
         }
 
         function enregistrerActivite() {
-            set(derniereActiviteRef, Date.now());
-            set(alerteRef, false);
+            derniereActiviteRef.set(Date.now());
+            alerteRef.set(false);
         }
 
-        window.creerJoueur = function() {
+        function creerJoueur() {
             const nom = document.getElementById('nouveau-nom').value.trim();
             const pin = document.getElementById('nouveau-pin').value.trim();
 
@@ -607,26 +560,26 @@
                 return;
             }
 
-            const newRef = push(joueursRef);
-            set(newRef, { nom, pin, solde: 100, jokers: 0 });
+            const newRef = joueursRef.push();
+            newRef.set({ nom: nom, pin: pin, solde: 100, jokers: 0 });
 
-            push(histoRef, {
-                texte: `👤 Nouveau joueur créé : ${nom}`,
+            histoRef.push({
+                texte: '👤 Nouveau joueur créé : ' + nom,
                 date: new Date().toLocaleTimeString('fr-FR')
             });
 
             document.getElementById('nouveau-nom').value = '';
             document.getElementById('nouveau-pin').value = '';
             enregistrerActivite();
-        };
+        }
 
-        window.supprimerJoueur = function(id) {
+        function supprimerJoueur(id) {
             if (confirm("Voulez-vous vraiment supprimer ce joueur ?")) {
-                remove(ref(db, `joueurs/${id}`));
+                joueursRef.child(id).remove();
             }
-        };
+        }
 
-        window.validerTransaction = function() {
+        function validerTransaction() {
             const id = document.getElementById('transac-joueur').value;
             const type = document.getElementById('transac-type').value;
             const montant = parseInt(document.getElementById('transac-montant').value);
@@ -640,70 +593,68 @@
 
             if (type === 'depot') {
                 if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
-                set(ref(db, `joueurs/${id}/solde`), soldeActuel + montant);
-                push(histoRef, { texte: `💳 ${joueur.nom} a déposé ${montant} €`, date: new Date().toLocaleTimeString('fr-FR') });
+                joueursRef.child(id).child('solde').set(soldeActuel + montant);
+                histoRef.push({ texte: '💳 ' + joueur.nom + ' a déposé ' + montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
             } else if (type === 'retrait') {
                 if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
-                set(ref(db, `joueurs/${id}/solde`), soldeActuel - montant);
-                push(histoRef, { texte: `💳 ${joueur.nom} a retiré ${montant} €`, date: new Date().toLocaleTimeString('fr-FR') });
+                joueursRef.child(id).child('solde').set(soldeActuel - montant);
+                histoRef.push({ texte: '💳 ' + joueur.nom + ' a retiré ' + montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
             } else if (type === 'joker') {
-                if (jokersActuels <= 0) return alert(`${joueur.nom} n'a aucun Joker !`);
-                set(ref(db, `joueurs/${id}/jokers`), jokersActuels - 1);
-                push(histoRef, { texte: `🃏 ${joueur.nom} a utilisé 1 Joker (${jokersActuels - 1}/2 restant)`, date: new Date().toLocaleTimeString('fr-FR') });
+                if (jokersActuels <= 0) return alert(joueur.nom + " n'a aucun Joker !");
+                joueursRef.child(id).child('jokers').set(jokersActuels - 1);
+                histoRef.push({ texte: '🃏 ' + joueur.nom + ' a utilisé 1 Joker (' + (jokersActuels - 1) + '/2 restant)', date: new Date().toLocaleTimeString('fr-FR') });
             }
 
             document.getElementById('transac-montant').value = '';
             enregistrerActivite();
-        };
+        }
 
-        // -------------------------------------------------------------
-        // JOKER MYSTÈRE & INACTIVITÉ
-        // -------------------------------------------------------------
-        onValue(alerteRef, (snapshot) => {
+        // JOKER MYSTÈRE
+        alerteRef.on('value', (snapshot) => {
             const active = snapshot.val();
             const box = document.getElementById('alerte-joker-surprise');
             if (box) box.style.display = active ? 'block' : 'none';
         });
 
-        window.reclamerJokerInactivite = function() {
-            const liste = Object.entries(window.localJoueurs);
-            if (liste.length === 0) return;
+        function reclamerJokerInactivite() {
+            const keys = Object.keys(window.localJoueurs);
+            if (keys.length === 0) return;
 
             let text = "Qui réclame ce Joker ?\n";
-            liste.forEach(([id, j], idx) => text += `${idx + 1}. ${j.nom}\n`);
+            keys.forEach((id, idx) => text += (idx + 1) + '. ' + window.localJoueurs[id].nom + '\n');
             const choix = parseInt(prompt(text)) - 1;
 
-            if (isNaN(choix) || choix < 0 || choix >= liste.length) return alert("Choix invalide.");
+            if (isNaN(choix) || choix < 0 || choix >= keys.length) return alert("Choix invalide.");
 
-            const [joueurId, joueur] = liste[choix];
+            const joueurId = keys[choix];
+            const joueur = window.localJoueurs[joueurId];
+
             if (!verifierPin(joueurId)) return alert("Code PIN incorrect !");
 
             const jokersActuels = joueur.jokers || 0;
 
             if (jokersActuels >= 2) {
-                alert(`⚠️ ${joueur.nom}, tu possèdes déjà le maximum de 2 Jokers !\nCe 3ᵉ Joker doit être consommé immédiatement !`);
-                push(histoRef, {
-                    texte: `⚡ JOKER CONSOMMÉ : ${joueur.nom} a réclamé le Joker mystère mais avait déjà 2 Jokers. Il l'a utilisé sur-le-champ !`,
+                alert('⚠️ ' + joueur.nom + ', tu possèdes déjà 2 Jokers (maximum) !\nCe Joker doit être utilisé immédiatement !');
+                histoRef.push({
+                    texte: '⚡ JOKER CONSOMMÉ : ' + joueur.nom + ' a récupéré le Joker mystère d\'inactivité mais avait déjà 2 Jokers. Il l\'a utilisé sur-le-champ !',
                     date: new Date().toLocaleTimeString('fr-FR')
                 });
             } else {
                 const nouveauTotal = jokersActuels + 1;
-                set(ref(db, `joueurs/${joueurId}/jokers`), nouveauTotal);
-                push(histoRef, {
-                    texte: `⚡ JOKER MYSTÈRE : ${joueur.nom} a réclamé le Joker mystère d'inactivité ! (${nouveauTotal}/2)`,
+                joueursRef.child(joueurId).child('jokers').set(nouveauTotal);
+                histoRef.push({
+                    texte: '⚡ JOKER MYSTÈRE : ' + joueur.nom + ' a réclamé le Joker mystère d\'inactivité ! (' + nouveauTotal + '/2)',
                     date: new Date().toLocaleTimeString('fr-FR')
                 });
-                alert(`Bravo ${joueur.nom} ! Joker ajouté à ton stock (${nouveauTotal}/2).`);
+                alert('Bravo ' + joueur.nom + ' ! Joker ajouté à ton stock (' + nouveauTotal + '/2).');
             }
 
-            set(alerteRef, false);
-            set(derniereActiviteRef, Date.now());
-        };
+            alerteRef.set(false);
+            derniereActiviteRef.set(Date.now());
+        }
 
-        // -------------------------------------------------------------
         // DEMANDES ET VIREMENTS
-        // -------------------------------------------------------------
-        window.soumettreDemande = function() {
+        function soumettreDemande() {
             const emetteurId = document.getElementById('demande-emetteur').value;
             const destId = document.getElementById('demande-destinataire').value;
             const type = document.getElementById('demande-type').value;
@@ -716,22 +667,28 @@
             const emetteurNom = window.localJoueurs[emetteurId].nom;
             const destNom = destId === "BANQUE" ? "la Banque" : window.localJoueurs[destId].nom;
 
-            const newDemandeRef = push(demandesRef);
-            set(newDemandeRef, {
-                emetteurId, emetteurNom, destId, destNom, type, montant, note, status: 'attente'
+            demandesRef.push({
+                emetteurId: emetteurId,
+                emetteurNom: emetteurNom,
+                destId: destId,
+                destNom: destNom,
+                type: type,
+                montant: montant,
+                note: note,
+                status: 'attente'
             });
 
-            push(histoRef, {
-                texte: `📩 Demande de ${emetteurNom} vers ${destNom} (${type} : ${montant} €)`,
+            histoRef.push({
+                texte: '📩 Demande de ' + emetteurNom + ' vers ' + destNom + ' (' + type + ' : ' + montant + ' €)',
                 date: new Date().toLocaleTimeString('fr-FR')
             });
 
             document.getElementById('demande-montant').value = '';
             document.getElementById('demande-note').value = '';
             enregistrerActivite();
-        };
+        }
 
-        onValue(demandesRef, (snapshot) => {
+        demandesRef.on('value', (snapshot) => {
             const data = snapshot.val() || {};
             const conteneur = document.getElementById('liste-demandes');
             conteneur.innerHTML = '';
@@ -741,47 +698,46 @@
                 return;
             }
 
-            Object.entries(data).forEach(([id, d]) => {
+            Object.keys(data).forEach(id => {
+                const d = data[id];
                 const item = document.createElement('div');
                 item.className = 'demande-item';
-                item.innerHTML = `
-                    <div><strong>${d.emetteurNom}</strong> ➔ <strong>${d.destNom}</strong> (${d.type})</div>
-                    <div>Montant : <strong>${d.montant} €</strong> ${d.note ? `| Note: <em>${d.note}</em>` : ''}</div>
-                    <div class="demande-actions">
-                        <button class="btn-success" onclick="traiterDemande('${id}', true)">Accepter</button>
-                        <button class="btn-danger" onclick="traiterDemande('${id}', false)">Refuser</button>
-                    </div>
-                `;
+                item.innerHTML = '<div><strong>' + d.emetteurNom + '</strong> ➔ <strong>' + d.destNom + '</strong> (' + d.type + ')</div>' +
+                    '<div>Montant : <strong>' + d.montant + ' €</strong> ' + (d.note ? '| Note: <em>' + d.note + '</em>' : '') + '</div>' +
+                    '<div class="demande-actions">' +
+                    '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                    '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser</button>' +
+                    '</div>';
                 conteneur.appendChild(item);
             });
         });
 
-        window.traiterDemande = function(id, accepter) {
+        function traiterDemande(id, accepter) {
             if (accepter) {
-                push(histoRef, { texte: `✅ Demande validée`, date: new Date().toLocaleTimeString('fr-FR') });
+                histoRef.push({ texte: '✅ Demande validée', date: new Date().toLocaleTimeString('fr-FR') });
             } else {
-                push(histoRef, { texte: `❌ Demande refusée`, date: new Date().toLocaleTimeString('fr-FR') });
+                histoRef.push({ texte: '❌ Demande refusée', date: new Date().toLocaleTimeString('fr-FR') });
             }
-            remove(ref(db, `demandes/${id}`));
+            demandesRef.child(id).remove();
             enregistrerActivite();
-        };
+        }
 
-        // -------------------------------------------------------------
         // HISTORIQUE & CHRONOMÈTRE
-        // -------------------------------------------------------------
-        onValue(histoRef, (snapshot) => {
+        histoRef.on('value', (snapshot) => {
             const data = snapshot.val() || {};
             const conteneur = document.getElementById('historique-liste');
             conteneur.innerHTML = '';
 
-            Object.values(data).reverse().forEach(h => {
+            const keys = Object.keys(data).reverse();
+            keys.forEach(k => {
+                const h = data[k];
                 const li = document.createElement('li');
-                li.innerHTML = `<span>${h.texte}</span><small style="color: #64748b">${h.date}</small>`;
+                li.innerHTML = '<span>' + h.texte + '</span><small style="color: #64748b">' + h.date + '</small>';
                 conteneur.appendChild(li);
             });
         });
 
-        onValue(chronoRef, (snapshot) => {
+        chronoRef.on('value', (snapshot) => {
             const chrono = snapshot.val();
             const banner = document.getElementById('chrono-banner');
 
@@ -792,7 +748,7 @@
             }
 
             banner.style.display = 'block';
-            document.getElementById('chrono-description').textContent = `⏱️ ${chrono.description}`;
+            document.getElementById('chrono-description').textContent = '⏱️ ' + chrono.description;
 
             if (chronoInterval) clearInterval(chronoInterval);
 
@@ -811,19 +767,19 @@
             }, 1000);
         });
 
-        window.lancerChrono = function() {
+        function lancerChrono() {
             const desc = document.getElementById('chrono-desc').value.trim() || "Défi en cours";
             const dateVal = document.getElementById('chrono-date').value;
 
             if (!dateVal) return alert("Sélectionnez une date de fin.");
 
             const fin = new Date(dateVal).getTime();
-            set(chronoRef, { actif: true, description: desc, fin });
-        };
+            chronoRef.set({ actif: true, description: desc, fin: fin });
+        }
 
-        window.arreterChrono = function() {
-            set(chronoRef, { actif: false });
-        };
+        function arreterChrono() {
+            chronoRef.set({ actif: false });
+        }
     </script>
 </body>
 </html>
