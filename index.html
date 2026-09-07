@@ -250,27 +250,57 @@
             color: #c7d2fe;
         }
 
-        #alerte-joker-surprise {
+        /* MODAL ROUE DE LA FORTUNE */
+        .modal-roue {
             display: none;
-            background: linear-gradient(135deg, #f59e0b, #ef4444);
-            color: white;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
             padding: 16px;
-            border-radius: 12px;
+        }
+
+        .modal-roue-content {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 400px;
+            width: 100%;
             text-align: center;
-            margin-bottom: 16px;
-            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
-            animation: pulse 1.5s infinite;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
         }
 
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
+        .roue-wrapper {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin: 16px auto;
         }
 
-        .admin-only {
-            display: none;
+        .roue-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 24px solid var(--danger);
+            z-index: 10;
         }
+
+        #canvas-roue {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            transition: transform 4s cubic-bezier(0.15, 0.99, 0.18, 0.99);
+        }
+
+        .admin-only { display: none; }
 
         .demande-item {
             flex-direction: column;
@@ -289,7 +319,6 @@
         }
     </style>
 
-    <!-- SDK Firebase v8 via CDN -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
@@ -301,7 +330,7 @@
             <span id="admin-badge" class="admin-badge">🔒 Mode Joueur</span>
         </header>
 
-        <!-- BANNIÈRE CHRONOMÈTRE GLOBAL -->
+        <!-- BANNIÈRE CHRONOMÈTRE -->
         <div id="chrono-banner" class="chrono-banner" style="display: none;">
             <div id="chrono-description" class="chrono-title">⏱️ Défi en cours</div>
             <div class="chrono-display">
@@ -312,16 +341,7 @@
             </div>
         </div>
 
-        <!-- BANNIÈRE JOKER MYSTÈRE INACTIVITÉ -->
-        <div id="alerte-joker-surprise">
-            <h3 style="margin: 0 0 8px 0; font-size: 1.2rem;">⚡ UN JOKER MYSTÈRE EST APPARU !</h3>
-            <p style="margin: 0 0 12px 0; font-size: 0.9rem;">Inactivité détectée ! Le premier qui clique l'emporte !</p>
-            <button onclick="reclamerJokerInactivite()" style="background: white; color: #ef4444; font-weight: bold; font-size: 1.1rem; padding: 12px; border: none; border-radius: 8px; cursor: pointer;">
-                🎁 LE RÉCLAMER !
-            </button>
-        </div>
-
-        <!-- ONGLET 1 : BANQUE / JOUEURS -->
+        <!-- ONGLET 1 : BANQUE -->
         <div id="tab-banque" class="tab-content active">
             <div class="taux-banque-info">
                 📊 Taux d'intérêt des prêts de la Banque : <strong>50 %</strong>
@@ -355,7 +375,7 @@
             </div>
         </div>
 
-        <!-- ONGLET 2 : DEMANDES & VIREMENTS -->
+        <!-- ONGLET 2 : DEMANDES -->
         <div id="tab-demandes" class="tab-content">
             <div class="card">
                 <label for="demande-emetteur">Votre nom (débiteur) :</label>
@@ -404,7 +424,7 @@
             </div>
         </div>
 
-        <!-- ONGLET 4 : ADMINISTRATION -->
+        <!-- ONGLET 4 : ADMIN -->
         <div id="tab-admin" class="tab-content">
             <div class="card">
                 <h2>🔑 Mode Administrateur</h2>
@@ -417,6 +437,12 @@
                     <p style="color: var(--success); font-weight: bold; margin-bottom: 12px;">Vous êtes connecté en tant qu'administrateur.</p>
                     <button class="btn-danger" onclick="deconnexionAdmin()">Se déconnecter</button>
                 </div>
+            </div>
+
+            <div class="card admin-only">
+                <h2>🎡 Roue de la Fortune Quotidienne</h2>
+                <p id="admin-roue-statut">Statut : Chargement...</p>
+                <button onclick="forcerResetRoueJour()">Reset tirage du jour</button>
             </div>
 
             <div class="card admin-only">
@@ -444,7 +470,24 @@
         </div>
     </div>
 
-    <!-- BARRE DE NAVIGATION INFÉRIEURE -->
+    <!-- MODAL POPUP ROUE DE LA FORTUNE -->
+    <div id="modal-roue" class="modal-roue">
+        <div class="modal-roue-content">
+            <h3 style="margin:0; color: var(--primary-dark);">🎡 ROUE SURPRISE DE LA FORTUNE !</h3>
+            <p style="font-size:0.9rem; margin:8px 0;" id="roue-joueur-nom">Félicitations, tu as été tiré au sort aujourd'hui !</p>
+            
+            <div class="roue-wrapper">
+                <div class="roue-pointer"></div>
+                <canvas id="canvas-roue" width="260" height="260"></canvas>
+            </div>
+
+            <button id="btn-tourner-roue" onclick="tournerLaRoue()" style="font-size: 1.1rem; padding: 12px; background: var(--success);">
+                🎯 Lancer la Roue !
+            </button>
+            <p id="roue-resultat-txt" style="font-weight: bold; font-size: 1.1rem; margin-top: 12px;"></p>
+        </div>
+    </div>
+
     <nav class="nav-tabs">
         <button class="tab-btn active" onclick="changerOnglet('banque', this)">🏦 Banque</button>
         <button class="tab-btn" onclick="changerOnglet('demandes', this)">📩 Demandes</button>
@@ -453,7 +496,6 @@
     </nav>
 
     <script>
-        // Configuration Firebase
         const firebaseConfig = {
             apiKey: "AiZaSyBzJugWBBzfzpgelCAGNAjycBMZv64WHbc",
             authDomain: "banque-jeu.firebaseapp.com",
@@ -464,35 +506,36 @@
             appId: "1:333582703295:web:aedbdfe4fe3ecd1ed8c40a"
         };
 
-        // Initialisation Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
         const db = firebase.database();
 
-        // Références Firebase
         const joueursRef = db.ref('joueurs');
         const histoRef = db.ref('historique');
         const demandesRef = db.ref('demandes');
         const chronoRef = db.ref('config/chrono');
-        const derniereActiviteRef = db.ref('config/derniereActivite');
-        const alerteRef = db.ref('config/alerteJokerActive');
+        const roueRef = db.ref('config/roueQuotidienne');
 
-        // Variables globales
         window.localJoueurs = {};
         window.isAdmin = false;
         let chronoInterval = null;
+        let localRoueConfig = {};
 
-        // NAVIGATION PAR ONGLETS
+        // SEGMENTS ROUE ET PROBABILITÉS
+        const segmentsRoue = [
+            { label: "🃏 +1 Joker", color: "#8b5cf6", type: "joker", value: 1, weight: 15 },
+            { label: "💶 +20 €", color: "#22c55e", type: "argent", value: 20, weight: 30 },
+            { label: "💶 +50 €", color: "#3b82f6", type: "argent", value: 50, weight: 10 },
+            { label: "❌ Perdu !", color: "#94a3b8", type: "rien", value: 0, weight: 30 },
+            { label: "💸 -10 €", color: "#ef4444", type: "argent", value: -10, weight: 15 }
+        ];
+
         function changerOnglet(tabId, element) {
             document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-
             document.getElementById('tab-' + tabId).classList.add('active');
             element.classList.add('active');
         }
 
-        // MODE ADMIN
         function connexionAdmin() {
             const pin = document.getElementById('admin-pin').value;
             if (pin === "1234") {
@@ -504,9 +547,7 @@
                 document.getElementById('admin-pin').value = '';
                 actualiserAffichageJoueurs();
                 actualiserHistoriqueUI();
-            } else {
-                alert("Code Administrateur incorrect.");
-            }
+            } else alert("Code Administrateur incorrect.");
         }
 
         function deconnexionAdmin() {
@@ -519,10 +560,11 @@
             actualiserHistoriqueUI();
         }
 
-        // ÉCOUTE DES JOUEURS
+        // ECOUTE JOUEURS
         joueursRef.on('value', (snapshot) => {
             window.localJoueurs = snapshot.val() || {};
             actualiserAffichageJoueurs();
+            verifierDeclenchementRoue();
         });
 
         function actualiserAffichageJoueurs() {
@@ -548,16 +590,10 @@
                 const ancienSolde = j.ancienSolde !== undefined ? j.ancienSolde : null;
 
                 const li = document.createElement('li');
-                li.innerHTML = '<div>' +
-                    '<strong>' + j.nom + '</strong>' +
-                    '<div class="solde">' + soldeActuel + ' €' + 
-                    (ancienSolde !== null ? ' <span class="ancien-solde">(Ancien: ' + ancienSolde + ' €)</span>' : '') + 
-                    '</div>' +
-                    '<div class="badge-joker">🃏 Jokers : ' + (j.jokers || 0) + ' / 2</div>' +
-                    '</div>' +
-                    '<div>' +
-                    (window.isAdmin ? '<button class="btn-danger-sm" onclick="supprimerJoueur(\'' + id + '\')">❌</button>' : '') +
-                    '</div>';
+                li.innerHTML = '<div><strong>' + j.nom + '</strong>' +
+                    '<div class="solde">' + soldeActuel + ' €' + (ancienSolde !== null ? ' <span class="ancien-solde">(Ancien: ' + ancienSolde + ' €)</span>' : '') + '</div>' +
+                    '<div class="badge-joker">🃏 Jokers : ' + (j.jokers || 0) + ' / 2</div></div>' +
+                    '<div>' + (window.isAdmin ? '<button class="btn-danger-sm" onclick="supprimerJoueur(\'' + id + '\')">❌</button>' : '') + '</div>';
                 listeUi.appendChild(li);
 
                 selectTransac.options.add(new Option(j.nom, id));
@@ -574,26 +610,177 @@
         }
 
         function enregistrerActivite() {
-            derniereActiviteRef.set(Date.now());
-            alerteRef.set(false);
+            const dateAujourdhui = new Date().toLocaleDateString('fr-FR');
+            roueRef.transaction(current => {
+                if (!current || current.date !== dateAujourdhui) {
+                    return { date: dateAujourdhui, nbActions: 1, tire: false, joueurGagnantId: null };
+                } else {
+                    current.nbActions = (current.nbActions || 0) + 1;
+                    return current;
+                }
+            });
+        }
+
+        // ROUE DE LA FORTUNE QUOTIDIENNE
+        roueRef.on('value', snapshot => {
+            localRoueConfig = snapshot.val() || {};
+            const dateAujourdhui = new Date().toLocaleDateString('fr-FR');
+
+            const statutTxt = document.getElementById('admin-roue-statut');
+            if (statutTxt) {
+                if (localRoueConfig.date !== dateAujourdhui) {
+                    statutTxt.textContent = "Statut : En attente d'activité aujourd'hui.";
+                } else if (localRoueConfig.tire) {
+                    const nomJ = window.localJoueurs[localRoueConfig.joueurGagnantId]?.nom || "Inconnu";
+                    statutTxt.textContent = "Statut : Déjà apparue aujourd'hui pour " + nomJ;
+                } else {
+                    statutTxt.textContent = "Statut : " + (localRoueConfig.nbActions || 0) + " / 3 actions avant tirage.";
+                }
+            }
+            verifierDeclenchementRoue();
+        });
+
+        function verifierDeclenchementRoue() {
+            const dateAujourdhui = new Date().toLocaleDateString('fr-FR');
+            const joueurKeys = Object.keys(window.localJoueurs);
+
+            if (!localRoueConfig || localRoueConfig.date !== dateAujourdhui || localRoueConfig.tire || joueurKeys.length === 0) {
+                return;
+            }
+
+            // Si au moins 3 actions ont eu lieu aujourd'hui -> Sélection d'un joueur
+            if ((localRoueConfig.nbActions || 0) >= 3 && !localRoueConfig.joueurGagnantId) {
+                const indexRandom = Math.floor(Math.random() * joueurKeys.length);
+                const joueurChoisiId = joueurKeys[indexRandom];
+
+                roueRef.update({
+                    joueurGagnantId: joueurChoisiId
+                });
+            } else if (localRoueConfig.joueurGagnantId) {
+                // Vérifier si un joueur a été sélectionné pour afficher la roue
+                dessinerRoue();
+                document.getElementById('modal-roue').style.display = 'flex';
+                const jNom = window.localJoueurs[localRoueConfig.joueurGagnantId]?.nom || "";
+                document.getElementById('roue-joueur-nom').textContent = '🎉 ' + jNom + ', tu as été tiré au sort pour tourner la Roue !';
+            }
+        }
+
+        function dessinerRoue() {
+            const canvas = document.getElementById('canvas-roue');
+            const ctx = canvas.getContext('2d');
+            const numSegments = segmentsRoue.length;
+            const anglePerSeg = (2 * Math.PI) / numSegments;
+
+            ctx.clearRect(0,0,260,260);
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = i * anglePerSeg;
+                ctx.beginPath();
+                ctx.fillStyle = segmentsRoue[i].color;
+                ctx.moveTo(130, 130);
+                ctx.arc(130, 130, 130, angle, angle + anglePerSeg);
+                ctx.lineTo(130, 130);
+                ctx.fill();
+
+                // Texte
+                ctx.save();
+                ctx.translate(130, 130);
+                ctx.rotate(angle + anglePerSeg / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "white";
+                ctx.font = "bold 13px sans-serif";
+                ctx.fillText(segmentsRoue[i].label, 115, 5);
+                ctx.restore();
+            }
+        }
+
+        function tournerLaRoue() {
+            const jId = localRoueConfig.joueurGagnantId;
+            if (!jId) return;
+
+            if (!verifierPin(jId)) return alert("Code PIN incorrect !");
+
+            const btn = document.getElementById('btn-tourner-roue');
+            btn.disabled = true;
+
+            // Tirage basé sur les probabilités (weights)
+            let totalWeight = segmentsRoue.reduce((sum, s) => sum + s.weight, 0);
+            let random = Math.random() * totalWeight;
+            let selectedIndex = 0;
+
+            for (let i = 0; i < segmentsRoue.length; i++) {
+                if (random < segmentsRoue[i].weight) {
+                    selectedIndex = i;
+                    break;
+                }
+                random -= segmentsRoue[i].weight;
+            }
+
+            const canvas = document.getElementById('canvas-roue');
+            const numSegments = segmentsRoue.length;
+            const degreesPerSegment = 360 / numSegments;
+            
+            // Calcul de la rotation pour aligner le segment sélectionné sous la flèche (en haut = 270 deg)
+            const targetDegree = 360 - (selectedIndex * degreesPerSegment) - (degreesPerSegment / 2) - 90;
+            const totalRotation = 360 * 5 + targetDegree; // 5 tours complets
+
+            canvas.style.transform = 'rotate(' + totalRotation + 'deg)';
+
+            setTimeout(() => {
+                const gain = segmentsRoue[selectedIndex];
+                const joueur = window.localJoueurs[jId];
+                let txtRes = "Résultat : " + gain.label;
+
+                if (gain.type === "argent") {
+                    const soldeActuel = joueur.solde || 0;
+                    joueursRef.child(jId).update({
+                        ancienSolde: soldeActuel,
+                        solde: soldeActuel + gain.value
+                    });
+                } else if (gain.type === "joker") {
+                    const jokersActuels = joueur.jokers || 0;
+                    if (jokersActuels >= 2) {
+                        txtRes += " (2 Jokers déjà détenus ➔ Converti en +25 € !)";
+                        const soldeActuel = joueur.solde || 0;
+                        joueursRef.child(jId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 25 });
+                    } else {
+                        joueursRef.child(jId).child('jokers').set(jokersActuels + 1);
+                    }
+                }
+
+                document.getElementById('roue-resultat-txt').textContent = txtRes;
+
+                histoRef.push({
+                    texte: '🎡 ROUE QUOTIDIENNE : ' + joueur.nom + ' a tourné la roue et a obtenu ➔ ' + txtRes,
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
+
+                // Marquer la roue comme tirée aujourd'hui
+                roueRef.update({ tire: true });
+
+                setTimeout(() => {
+                    document.getElementById('modal-roue').style.display = 'none';
+                    canvas.style.transform = 'rotate(0deg)';
+                    btn.disabled = false;
+                    document.getElementById('roue-resultat-txt').textContent = '';
+                }, 3500);
+
+            }, 4000);
+        }
+
+        function forcerResetRoueJour() {
+            roueRef.set({ date: "", nbActions: 0, tire: false, joueurGagnantId: null });
+            alert("Roue remise à zéro.");
         }
 
         function creerJoueur() {
             const nom = document.getElementById('nouveau-nom').value.trim();
             const pin = document.getElementById('nouveau-pin').value.trim();
 
-            if (!nom || pin.length !== 4) {
-                alert("Nom requis et PIN de 4 chiffres.");
-                return;
-            }
+            if (!nom || pin.length !== 4) return alert("Nom requis et PIN de 4 chiffres.");
 
-            const newRef = joueursRef.push();
-            newRef.set({ nom: nom, pin: pin, solde: 100, ancienSolde: 100, jokers: 0 });
-
-            histoRef.push({
-                texte: '👤 Nouveau joueur créé : ' + nom,
-                date: new Date().toLocaleTimeString('fr-FR')
-            });
+            joueursRef.push().set({ nom: nom, pin: pin, solde: 100, ancienSolde: 100, jokers: 0 });
+            histoRef.push({ texte: '👤 Nouveau joueur créé : ' + nom, date: new Date().toLocaleTimeString('fr-FR') });
 
             document.getElementById('nouveau-nom').value = '';
             document.getElementById('nouveau-pin').value = '';
@@ -601,9 +788,7 @@
         }
 
         function supprimerJoueur(id) {
-            if (confirm("Voulez-vous vraiment supprimer ce joueur ?")) {
-                joueursRef.child(id).remove();
-            }
+            if (confirm("Voulez-vous vraiment supprimer ce joueur ?")) joueursRef.child(id).remove();
         }
 
         function validerTransaction() {
@@ -620,17 +805,11 @@
 
             if (type === 'depot') {
                 if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
-                joueursRef.child(id).update({
-                    ancienSolde: soldeActuel,
-                    solde: soldeActuel + montant
-                });
+                joueursRef.child(id).update({ ancienSolde: soldeActuel, solde: soldeActuel + montant });
                 histoRef.push({ texte: '💳 ' + joueur.nom + ' a déposé ' + montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
             } else if (type === 'retrait') {
                 if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
-                joueursRef.child(id).update({
-                    ancienSolde: soldeActuel,
-                    solde: soldeActuel - montant
-                });
+                joueursRef.child(id).update({ ancienSolde: soldeActuel, solde: soldeActuel - montant });
                 histoRef.push({ texte: '💳 ' + joueur.nom + ' a retiré ' + montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
             } else if (type === 'joker') {
                 if (jokersActuels <= 0) return alert(joueur.nom + " n'a aucun Joker !");
@@ -642,55 +821,9 @@
             enregistrerActivite();
         }
 
-        // JOKER MYSTÈRE
-        alerteRef.on('value', (snapshot) => {
-            const active = snapshot.val();
-            const box = document.getElementById('alerte-joker-surprise');
-            if (box) box.style.display = active ? 'block' : 'none';
-        });
-
-        function reclamerJokerInactivite() {
-            const keys = Object.keys(window.localJoueurs);
-            if (keys.length === 0) return;
-
-            let text = "Qui réclame ce Joker ?\n";
-            keys.forEach((id, idx) => text += (idx + 1) + '. ' + window.localJoueurs[id].nom + '\n');
-            const choix = parseInt(prompt(text)) - 1;
-
-            if (isNaN(choix) || choix < 0 || choix >= keys.length) return alert("Choix invalide.");
-
-            const joueurId = keys[choix];
-            const joueur = window.localJoueurs[joueurId];
-
-            if (!verifierPin(joueurId)) return alert("Code PIN incorrect !");
-
-            const jokersActuels = joueur.jokers || 0;
-
-            if (jokersActuels >= 2) {
-                alert('⚠️ ' + joueur.nom + ', tu possèdes déjà 2 Jokers (maximum) !\nCe Joker doit être utilisé immédiatement !');
-                histoRef.push({
-                    texte: '⚡ JOKER CONSOMMÉ : ' + joueur.nom + ' a récupéré le Joker mystère d\'inactivité mais avait déjà 2 Jokers. Il l\'a utilisé sur-le-champ !',
-                    date: new Date().toLocaleTimeString('fr-FR')
-                });
-            } else {
-                const nouveauTotal = jokersActuels + 1;
-                joueursRef.child(joueurId).child('jokers').set(nouveauTotal);
-                histoRef.push({
-                    texte: '⚡ JOKER MYSTÈRE : ' + joueur.nom + ' a réclamé le Joker mystère d\'inactivité ! (' + nouveauTotal + '/2)',
-                    date: new Date().toLocaleTimeString('fr-FR')
-                });
-                alert('Bravo ' + joueur.nom + ' ! Joker ajouté à ton stock (' + nouveauTotal + '/2).');
-            }
-
-            alerteRef.set(false);
-            derniereActiviteRef.set(Date.now());
-        }
-
-        // DEMANDES ET VIREMENTS
         function gererAffichageTaux() {
             const destId = document.getElementById('demande-destinataire').value;
-            const boxTaux = document.getElementById('box-taux');
-            boxTaux.style.display = (destId !== "BANQUE") ? "block" : "none";
+            document.getElementById('box-taux').style.display = (destId !== "BANQUE") ? "block" : "none";
         }
 
         function soumettreDemande() {
@@ -767,12 +900,10 @@
                 if (!d) return;
 
                 if (accepter) {
-                    // Si c'est un emprunt avec taux d'intérêt
                     if (d.type === "Emprunt" && d.taux > 0) {
                         const montantCapital = d.montant;
                         const montantTotalARembourser = Math.round(montantCapital * (1 + d.taux / 100));
                         
-                        // Créditer le débiteur
                         const joueurDebiteur = window.localJoueurs[d.emetteurId];
                         if (joueurDebiteur) {
                             const soldeActuel = joueurDebiteur.solde || 0;
@@ -793,10 +924,7 @@
                         });
                     }
                 } else {
-                    histoRef.push({ 
-                        texte: '❌ Demande de ' + d.emetteurNom + ' refusée', 
-                        date: new Date().toLocaleTimeString('fr-FR') 
-                    });
+                    histoRef.push({ texte: '❌ Demande de ' + d.emetteurNom + ' refusée', date: new Date().toLocaleTimeString('fr-FR') });
                 }
 
                 demandesRef.child(id).remove();
@@ -804,9 +932,7 @@
             });
         }
 
-        // HISTORIQUE & CHRONOMÈTRE
         let rawHistoData = {};
-
         histoRef.on('value', (snapshot) => {
             rawHistoData = snapshot.val() || {};
             actualiserHistoriqueUI();
@@ -815,8 +941,8 @@
         function actualiserHistoriqueUI() {
             const conteneur = document.getElementById('historique-liste');
             conteneur.innerHTML = '';
-
             const keys = Object.keys(rawHistoData).reverse();
+
             if (keys.length === 0) {
                 conteneur.innerHTML = '<li>Aucun historique enregistré.</li>';
                 return;
@@ -832,9 +958,7 @@
         }
 
         function supprimerLigneHisto(id) {
-            if (confirm("Supprimer cette ligne d'historique ?")) {
-                histoRef.child(id).remove();
-            }
+            if (confirm("Supprimer cette ligne d'historique ?")) histoRef.child(id).remove();
         }
 
         chronoRef.on('value', (snapshot) => {
@@ -870,16 +994,13 @@
         function lancerChrono() {
             const desc = document.getElementById('chrono-desc').value.trim() || "Défi en cours";
             const dateVal = document.getElementById('chrono-date').value;
-
             if (!dateVal) return alert("Sélectionnez une date de fin.");
 
             const fin = new Date(dateVal).getTime();
             chronoRef.set({ actif: true, description: desc, fin: fin });
         }
 
-        function arreterChrono() {
-            chronoRef.set({ actif: false });
-        }
+        function arreterChrono() { chronoRef.set({ actif: false }); }
     </script>
 </body>
 </html>
