@@ -250,7 +250,6 @@
             color: #c7d2fe;
         }
 
-        /* BANNIÈRE DÉFI PUBLIC */
         .defi-banner {
             background: linear-gradient(135deg, #7c3aed, #4c1d95);
             color: #ffffff;
@@ -261,7 +260,6 @@
             box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
         }
 
-        /* JOKER VOLANT */
         .joker-volant-btn {
             position: fixed;
             z-index: 3000;
@@ -283,7 +281,6 @@
             100% { transform: scale(1.1); }
         }
 
-        /* MODAL ROUE DE LA FORTUNE */
         .modal-roue {
             display: none;
             position: fixed;
@@ -351,7 +348,6 @@
             width: 100%;
         }
 
-        /* CARTE BOURSE FLASH */
         .card-bourse-flash {
             border: 2px solid #f59e0b;
             background: #fffbeb;
@@ -363,7 +359,6 @@
 </head>
 <body>
 
-    <!-- BUTTON JOKER VOLANT SURPRISE -->
     <button id="joker-volant" class="joker-volant-btn" style="display: none;" onclick="attraperJokerVolant()">
         🃏 UN JOKER APPARAÎT ! CLIQUE ICI !
     </button>
@@ -374,7 +369,6 @@
             <span id="admin-badge" class="admin-badge">🔒 Mode Joueur</span>
         </header>
 
-        <!-- BANNIÈRE DÉFI EN COURS -->
         <div id="defi-banner" class="defi-banner" style="display: none;">
             <h3 style="margin: 0 0 8px 0;">⚔️ DÉFI JOKER LANCÉ !</h3>
             <p id="defi-details" style="font-size: 0.95rem; margin: 0 0 12px 0;"></p>
@@ -384,7 +378,6 @@
             </div>
         </div>
 
-        <!-- BANNIÈRE CHRONOMÈTRE -->
         <div id="chrono-banner" class="chrono-banner" style="display: none;">
             <div id="chrono-description" class="chrono-title">⏱️ Défi en cours</div>
             <div class="chrono-display">
@@ -395,7 +388,6 @@
             </div>
         </div>
 
-        <!-- CARTE BOURSE FLASH NOMINATIVE -->
         <div class="card card-bourse-flash" id="card-bourse" style="display: none;">
             <h2 style="color: #b45309;">⚡ Opportunité Boursière Nominative !</h2>
             <p style="font-size: 0.9rem; margin-bottom: 8px;">
@@ -420,7 +412,6 @@
             </button>
         </div>
 
-        <!-- ONGLET 1 : BANQUE -->
         <div id="tab-banque" class="tab-content active">
             <div class="taux-banque-info">
                 📊 Taux d'intérêt des prêts de la Banque : <strong>50 %</strong>
@@ -454,7 +445,6 @@
             </div>
         </div>
 
-        <!-- ONGLET 2 : DEMANDES -->
         <div id="tab-demandes" class="tab-content">
             <div class="card">
                 <label for="demande-emetteur">Votre nom (débiteur) :</label>
@@ -493,7 +483,6 @@
             </div>
         </div>
 
-        <!-- ONGLET 3 : HISTORIQUE -->
         <div id="tab-historique" class="tab-content">
             <div class="card">
                 <h2>📜 Historique Général</h2>
@@ -503,7 +492,6 @@
             </div>
         </div>
 
-        <!-- ONGLET 4 : ADMIN -->
         <div id="tab-admin" class="tab-content">
             <div class="card">
                 <h2>🔑 Mode Administrateur</h2>
@@ -518,7 +506,14 @@
                 </div>
             </div>
 
-            <!-- SAUVEGARDE & RESTAURATION BDD -->
+            <!-- CHANGER PIN ADMIN -->
+            <div class="card admin-only">
+                <h2>🔐 Modifier le Mot de Passe Admin</h2>
+                <label for="nouveau-pin-admin">Nouveau Mot de Passe Admin :</label>
+                <input type="password" id="nouveau-pin-admin" placeholder="Entrez le nouveau code">
+                <button onclick="changerPinAdmin()">Mettre à jour le mot de passe</button>
+            </div>
+
             <div class="card admin-only">
                 <h2>💾 Base de Données (Sauvegarde & Restauration)</h2>
                 <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">
@@ -571,7 +566,6 @@
         </div>
     </div>
 
-    <!-- MODAL POPUP ROUE DE LA FORTUNE -->
     <div id="modal-roue" class="modal-roue">
         <div class="modal-roue-content">
             <h3 style="margin:0; color: var(--primary-dark);">🎡 ROUE SURPRISE DE LA FORTUNE !</h3>
@@ -617,15 +611,22 @@
         const roueRef = db.ref('config/roueQuotidienne');
         const defiRef = db.ref('config/defiActif');
         const inactiviteRef = db.ref('config/inactivite');
+        const adminPinRef = db.ref('config/adminPin');
 
         const MONTANT_PENALITE_BOURSE = 20;
         const MAX_OPPORTUNITES_BOURSE_PAR_JOUR = 2;
 
         window.localJoueurs = {};
         window.isAdmin = false;
+        let currentAdminPin = "1234";
         let chronoInterval = null;
         let localRoueConfig = {};
         let localDefiActif = null;
+
+        adminPinRef.on('value', snapshot => {
+            const val = snapshot.val();
+            if (val) currentAdminPin = val;
+        });
 
         const segmentsRoue = [
             { label: "🃏 +1 Joker", color: "#8b5cf6", type: "joker", value: 1, weight: 15 },
@@ -644,7 +645,7 @@
 
         function connexionAdmin() {
             const pin = document.getElementById('admin-pin').value;
-            if (pin === "1234") {
+            if (pin === currentAdminPin) {
                 window.isAdmin = true;
                 document.getElementById('admin-badge').textContent = "🔓 Mode Admin";
                 document.getElementById('admin-badge').classList.add('active');
@@ -654,6 +655,21 @@
                 actualiserAffichageJoueurs();
                 actualiserHistoriqueUI();
             } else alert("Code Administrateur incorrect.");
+        }
+
+        function changerPinAdmin() {
+            if (!window.isAdmin) return;
+            const nouveauPin = document.getElementById('nouveau-pin-admin').value.trim();
+            if (!nouveauPin) return alert("Le mot de passe ne peut pas être vide.");
+
+            adminPinRef.set(nouveauPin).then(() => {
+                alert("Mot de passe Administrateur mis à jour avec succès !");
+                document.getElementById('nouveau-pin-admin').value = '';
+                histoRef.push({
+                    texte: '🔐 Le mot de passe administrateur a été modifié',
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
+            }).catch(err => alert("Erreur : " + err.message));
         }
 
         function deconnexionAdmin() {
@@ -732,9 +748,6 @@
             });
         }
 
-        // ==========================================
-        // GESTION INACTIVITÉ & JOKER VOLANT SURPRISE
-        // ==========================================
         inactiviteRef.on('value', snapshot => {
             const data = snapshot.val() || {};
             const btnJoker = document.getElementById('joker-volant');
@@ -804,9 +817,6 @@
             });
         }
 
-        // ==========================================
-        // GESTION DU DÉFI PUBLIC (3E JOKER OBLIGATOIRE)
-        // ==========================================
         defiRef.on('value', snapshot => {
             localDefiActif = snapshot.val();
             const banner = document.getElementById('defi-banner');
@@ -894,7 +904,6 @@
             enregistrerActivite();
         }
 
-        // ROUE DE LA FORTUNE QUOTIDIENNE
         roueRef.on('value', snapshot => {
             localRoueConfig = snapshot.val() || {};
             const dateAujourdhui = new Date().toLocaleDateString('fr-FR');
@@ -1271,9 +1280,6 @@
 
         function arreterChrono() { chronoRef.set({ actif: false }); }
 
-        // ==========================================
-        // MOTEUR BOURSE FLASH & PRÊT AUTOMATIQUE
-        // ==========================================
         programmerProchaineOpportunite();
 
         function programmerProchaineOpportunite() {
@@ -1438,10 +1444,6 @@
 
             financerImpactBourse(joueurId, -MONTANT_PENALITE_BOURSE, messageHisto, messageAlert);
         }
-
-        // ==========================================
-        // SAUVEGARDE ET RESTAURATION BDD
-        // ==========================================
 
         function sauvegarderBDD() {
             if (!window.isAdmin) return alert("Action réservée à l'administrateur.");
