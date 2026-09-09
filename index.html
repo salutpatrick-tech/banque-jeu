@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banque Jeu - Bourse & Prêts</title>
+    <title>Banque du Jeu - Application Complète</title>
     
-    <!-- Scripts Firebase (Compat) -->
+    <!-- SDKs Firebase (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
@@ -17,16 +17,17 @@
             --card-bg: #ffffff;
             --text-color: #0f172a;
             --danger: #ef4444;
-            --danger-hover: #dc2626;
             --warning: #f59e0b;
+            --success: #10b981;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 20px;
+            padding: 16px;
+            padding-bottom: 80px;
             display: flex;
             justify-content: center;
         }
@@ -43,12 +44,10 @@
             background-color: var(--card-bg);
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
         }
 
-        h1, h2, h3 {
-            margin-top: 0;
-        }
+        h1, h2, h3 { margin-top: 0; }
 
         label {
             display: block;
@@ -65,6 +64,7 @@
             border: 1px solid #cbd5e1;
             box-sizing: border-box;
             font-size: 1rem;
+            margin-bottom: 8px;
         }
 
         button {
@@ -73,87 +73,170 @@
             border: none;
             cursor: pointer;
             font-weight: 600;
-            transition: background-color 0.2s;
         }
 
-        button:hover {
-            background-color: var(--primary-hover);
-        }
+        button:hover { background-color: var(--primary-hover); }
 
-        .btn-danger {
-            background-color: var(--danger);
-        }
-
-        .btn-danger:hover {
-            background-color: var(--danger-hover);
-        }
+        .btn-danger { background-color: var(--danger); }
+        .btn-warning { background-color: var(--warning); color: #000; }
 
         .joueur-item {
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
+            padding: 10px 0;
             border-bottom: 1px solid #e2e8f0;
         }
 
         .histo-item {
             font-size: 0.85rem;
             color: #475569;
-            padding: 4px 0;
+            padding: 6px 0;
             border-bottom: 1px dashed #e2e8f0;
         }
+
+        /* SYSTÈME D'ONGLETS ET NAVIGATION BASSE */
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            border-top: 1px solid #cbd5e1;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: auto;
+            margin: 0;
+            padding: 4px;
+        }
+
+        .nav-btn.active {
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        .nav-btn span { font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
 
-    <!-- HEADER / DASHBOARD -->
-    <div class="card">
-        <h1>🏦 Banque du Jeu</h1>
-        <div id="liste-joueurs">
-            <p>Chargement des joueurs...</p>
-        </div>
-    </div>
-
-    <!-- CARTE BOURSE FLASH NOMINATIVE -->
+    <!-- BOURSE FLASH ALERTE (TOUJOURS EN HAUT SI ACTIVE) -->
     <div class="card" id="card-bourse" style="display: none; border: 2px solid #f59e0b; background: #fffbeb;">
-        <h2 style="color: #b45309;">⚡ Opportunité Boursière Nominative !</h2>
-        <p style="font-size: 0.9rem; margin-bottom: 8px;">
-            Réservée exclusivement à : <strong id="bourse-joueur-nom" style="font-size: 1.1rem; color: #d97706;">---</strong>
+        <h2 style="color: #b45309;">⚡ Opportunité Boursière !</h2>
+        <p style="font-size: 0.9rem;">
+            Réservée exclusivement à : <strong id="bourse-joueur-nom" style="color: #d97706; font-size: 1.1rem;">---</strong>
         </p>
-        <p style="font-size: 1rem; margin-bottom: 8px; color: #1e293b;">
-            Prix de l'action imposé : <strong id="bourse-montant-impose" style="font-size: 1.2rem; color: #2563eb;">0 €</strong>
+        <p style="font-size: 1rem;">
+            Prix de l'action imposé : <strong id="bourse-montant-impose" style="color: #2563eb;">0 €</strong>
         </p>
-        <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">
-            Risque : <strong>-100% à +100%</strong> (Résolution et revente immédiates).<br>
-            <i>En cas de perte ou pénalité supérieure au solde, un prêt automatique de la Banque comblera le manque.</i>
+        <p style="font-size: 0.8rem; color: #64748b;">
+            Variation : <strong>-100% à +100%</strong>.<br>
+            <i>Prêt automatique à 50% d'intérêt en cas de découvert.</i>
         </p>
 
         <input type="hidden" id="bourse-joueur-id">
         <input type="hidden" id="bourse-cout-action">
 
-        <button onclick="acheterActionFlash()" style="background-color: #d97706; color: white; margin-top: 12px;">
-            🎲 Acheter l'action maintenant !
-        </button>
-        <button onclick="refuserActionFlash()" class="btn-danger" style="margin-top: 8px;" id="btn-refus-texte">
-            🚫 Refuser l'opportunité (Pénalité de 20 €)
-        </button>
+        <button onclick="acheterActionFlash()" style="background-color: #d97706; color: white;">🎲 Acheter l'action</button>
+        <button onclick="refuserActionFlash()" class="btn-danger" id="btn-refus-texte">🚫 Refuser (-20 €)</button>
     </div>
 
-    <!-- HISTORIQUE DES TRANSACTIONS -->
-    <div class="card">
-        <h3>📜 Historique des activités</h3>
-        <div id="historique-liste" style="max-height: 200px; overflow-y: auto;">
-            <p style="font-size: 0.85rem; color: #94a3b8;">Aucune activité récente.</p>
+    <!-- 1. ONGLET DASHBOARD -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="card">
+            <h1>🏦 Banque du Jeu</h1>
+            <div id="liste-joueurs"><p>Chargement des solde...</p></div>
+        </div>
+
+        <div class="card">
+            <h3>📜 Historique des activités</h3>
+            <div id="historique-liste" style="max-height: 200px; overflow-y: auto;">
+                <p style="font-size: 0.85rem; color: #94a3b8;">Aucune activité récente.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. ONGLET VIREMENT & DEMANDES -->
+    <div id="tab-virement" class="tab-content">
+        <div class="card">
+            <h2>💸 Effectuer un Virement</h2>
+            <label>Émetteur :</label>
+            <select id="virement-emetteur"></select>
+
+            <label>Destinataire :</label>
+            <select id="virement-destinataire"></select>
+
+            <label>Montant (€) :</label>
+            <input type="number" id="virement-montant" min="1" placeholder="Ex: 10">
+
+            <button onclick="effectuerVirement()">Valider le Virement</button>
+        </div>
+    </div>
+
+    <!-- 3. ONGLET JOKERS -->
+    <div id="tab-jokers" class="tab-content">
+        <div class="card">
+            <h2>🃏 Lancer un Défi Joker</h2>
+            <p style="font-size: 0.85rem; color: #64748b;">Le Joker applique une pénalité au joueur qui refuse votre défi oral (50 € pour 1 Joker, 100 € pour 2 Jokers).</p>
+            
+            <label>Joueur qui lance le Joker :</label>
+            <select id="joker-lanceur"></select>
+
+            <label>Joueur ciblé :</label>
+            <select id="joker-cible"></select>
+
+            <label>Nombre de Jokers à utiliser :</label>
+            <select id="joker-quantite">
+                <option value="1">1 Joker (Pénalité 50 €)</option>
+                <option value="2">2 Jokers (Pénalité 100 €)</option>
+            </select>
+
+            <button onclick="jouerJoker()" class="btn-warning">🃏 Lancer le Défi</button>
+        </div>
+    </div>
+
+    <!-- 4. ONGLET ADMINISTRATION -->
+    <div id="tab-admin" class="tab-content">
+        <div class="card">
+            <h2>⚙️ Administration</h2>
+            <label>Créer un nouveau joueur :</label>
+            <input type="text" id="admin-nom-joueur" placeholder="Nom du joueur">
+            <input type="number" id="admin-solde-initial" placeholder="Solde initial (€)" value="100">
+            <input type="password" id="admin-pin-joueur" placeholder="Code PIN à 4 chiffres">
+            <button onclick="ajouterJoueur()">+ Ajouter Joueur</button>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #e2e8f0;">
+            <button onclick="reinitialiserPartie()" class="btn-danger">⚠️ Réinitialiser Toute la Partie</button>
         </div>
     </div>
 
 </div>
 
+<!-- BARRE DE NAVIGATION BASSE -->
+<div class="nav-bar">
+    <button class="nav-btn active" onclick="changerOnglet('tab-dashboard', this)"><span>📊</span>Solde</button>
+    <button class="nav-btn" onclick="changerOnglet('tab-virement', this)"><span>💸</span>Virement</button>
+    <button class="nav-btn" onclick="changerOnglet('tab-jokers', this)"><span>🃏</span>Jokers</button>
+    <button class="nav-btn" onclick="changerOnglet('tab-admin', this)"><span>⚙️</span>Admin</button>
+</div>
+
 <script>
-    // ==========================================
-    // 1. CONFIGURATION FIREBASE & PARAMÈTRES
-    // ==========================================
+    // 1. FIREBASE CONFIGURATION
     const firebaseConfig = {
         apiKey: "AIzaSyBzJugWBBzfzpgeLCAGNAjycBMZv64WHbc",
         authDomain: "banque-jeu.firebaseapp.com",
@@ -168,7 +251,6 @@
     const MAX_OPPORTUNITES_PAR_JOUR = 2;
 
     firebase.initializeApp(firebaseConfig);
-    // Spécification de l'URL européenne pour éviter les erreurs de connexion WebSocket
     const database = firebase.app().database("https://banque-jeu-default-rtdb.europe-west1.firebasedatabase.app");
 
     const joueursRef = database.ref('joueurs');
@@ -177,11 +259,16 @@
 
     window.localJoueurs = {};
 
-    document.getElementById('btn-refus-texte').textContent = `🚫 Refuser l'opportunité (Pénalité de -${MONTANT_PENALITE} €)`;
+    // GESTION DES ONGLETS
+    function changerOnglet(tabId, btn) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        btn.classList.add('active');
+    }
 
-    // ==========================================
-    // 2. SYNCHRONISATION EN TEMPS RÉEL (FIREBASE)
-    // ==========================================
+    // SYNCHRONISATION EN TEMPS RÉEL
     joueursRef.on('value', (snapshot) => {
         const data = snapshot.val() || {};
         window.localJoueurs = data;
@@ -189,12 +276,30 @@
         const container = document.getElementById('liste-joueurs');
         container.innerHTML = '';
 
+        const selects = ['virement-emetteur', 'virement-destinataire', 'joker-lanceur', 'joker-cible'];
+        selects.forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.innerHTML = '';
+        });
+
         Object.keys(data).forEach(id => {
             const j = data[id];
+            // Remplir tableau bord
             const div = document.createElement('div');
             div.className = 'joueur-item';
-            div.innerHTML = `<span><strong>${j.nom}</strong></span> <span>${j.solde || 0} €</span>`;
+            div.innerHTML = `<span><strong>${j.nom}</strong> ${j.jokers ? '🃏 x'+j.jokers : ''}</span> <span>${j.solde || 0} €</span>`;
             container.appendChild(div);
+
+            // Remplir sélecteurs
+            selects.forEach(sId => {
+                const el = document.getElementById(sId);
+                if(el) {
+                    const opt = document.createElement('option');
+                    opt.value = id;
+                    opt.textContent = `${j.nom} (${j.solde || 0} €)`;
+                    el.appendChild(opt);
+                }
+            });
         });
     });
 
@@ -212,37 +317,102 @@
         });
     });
 
-    // ==========================================
-    // 3. VÉRIFICATION SÉCURITÉ PIN
-    // ==========================================
     function verifierPin(joueurId) {
         const joueur = window.localJoueurs[joueurId];
         if (!joueur || !joueur.pin) return true;
-
         const saisie = prompt(`Saisis le code PIN pour ${joueur.nom} :`);
-        if (saisie === String(joueur.pin)) {
-            return true;
+        return saisie === String(joueur.pin);
+    }
+
+    // FONCTIONNALITÉ VIREMENT
+    function effectuerVirement() {
+        const emetteurId = document.getElementById('virement-emetteur').value;
+        const destId = document.getElementById('virement-destinataire').value;
+        const montant = parseInt(document.getElementById('virement-montant').value);
+
+        if (emetteurId === destId) return alert("Saisis deux joueurs différents.");
+        if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+        if (!verifierPin(emetteurId)) return alert("Code PIN incorrect.");
+
+        const emetteur = window.localJoueurs[emetteurId];
+        if ((emetteur.solde || 0) < montant) return alert("Solde insuffisant.");
+
+        const dest = window.localJoueurs[destId];
+
+        joueursRef.child(emetteurId).update({ solde: emetteur.solde - montant });
+        joueursRef.child(destId).update({ solde: (dest.solde || 0) + montant });
+
+        histoRef.push({
+            texte: `💸 VIREMENT : ${emetteur.nom} a envoyé ${montant} € à ${dest.nom}`,
+            date: new Date().toLocaleTimeString('fr-FR')
+        });
+
+        alert("Virement effectué avec succès !");
+        document.getElementById('virement-montant').value = '';
+    }
+
+    // FONCTIONNALITÉ JOKER
+    function jouerJoker() {
+        const lanceurId = document.getElementById('joker-lanceur').value;
+        const cibleId = document.getElementById('joker-cible').value;
+        const nbJokers = parseInt(document.getElementById('joker-quantite').value);
+
+        if (lanceurId === cibleId) return alert("Cible un autre joueur.");
+        if (!verifierPin(lanceurId)) return alert("Code PIN incorrect.");
+
+        const lanceur = window.localJoueurs[lanceurId];
+        const jokersPossedes = lanceur.jokers || 0;
+
+        if (jokersPossedes < nbJokers) return alert(`Tu n'as pas assez de Jokers (${jokersPossedes} disponible(s)).`);
+
+        const cible = window.localJoueurs[cibleId];
+        const penalite = nbJokers * 50;
+
+        if (confirm(`Le joueur ${cible.nom} accepte-t-il le défi oral de ${lanceur.nom} ?\n\nCliquer sur ANNULER s'il REFUSE (Pénalité de ${penalite} €).`)) {
+            // Défi accepté : Le joker est juste consommé
+            joueursRef.child(lanceurId).update({ jokers: jokersPossedes - nbJokers });
+            histoRef.push({
+                texte: `🃏 JOKER : ${lanceur.nom} a lancé un défi à ${cible.nom} (Accepté !)`,
+                date: new Date().toLocaleTimeString('fr-FR')
+            });
+            alert("Défi accepté ! Aucun transfert d'argent.");
         } else {
-            alert("Code PIN incorrect !");
-            return false;
+            // Défi refusé : Pénalité payée au lanceur
+            joueursRef.child(lanceurId).update({ 
+                jokers: jokersPossedes - nbJokers,
+                solde: (lanceur.solde || 0) + penalite 
+            });
+
+            const soldeCible = cible.solde || 0;
+            let nouveauSoldeCible = soldeCible - penalite;
+
+            if (nouveauSoldeCible < 0) {
+                const pret = Math.abs(nouveauSoldeCible);
+                nouveauSoldeCible = 0;
+                demandesRef.push({
+                    emetteurId: cibleId,
+                    emetteurNom: cible.nom,
+                    destId: "BANQUE",
+                    type: "Emprunt Automatique (Joker)",
+                    montant: pret,
+                    taux: 50
+                });
+            }
+
+            joueursRef.child(cibleId).update({ solde: nouveauSoldeCible });
+
+            histoRef.push({
+                texte: `🚫 JOKER REFUSÉ : ${cible.nom} refuse le défi et paie ${penalite} € à ${lanceur.nom}`,
+                date: new Date().toLocaleTimeString('fr-FR')
+            });
+            alert(`Pénalité de ${penalite} € appliquée à ${cible.nom} !`);
         }
     }
 
-    // ==========================================
-    // 4. MOTEUR BOURSE FLASH & PRÊT AUTOMATIQUE
-    // ==========================================
-    let delaiApparitionTimeout = null;
-
-    programmerProchaineOpportunite();
-
+    // MOTEUR BOURSE FLASH
     function programmerProchaineOpportunite() {
-        const delaiMin = 1 * 60 * 1000;
-        const delaiMax = 5 * 60 * 1000;
-        const delaiAleatoire = Math.floor(Math.random() * (delaiMax - delaiMin + 1)) + delaiMin;
-
-        delaiApparitionTimeout = setTimeout(() => {
-            afficherOpportuniteBourse();
-        }, delaiAleatoire);
+        const delai = Math.floor(Math.random() * (5 - 1 + 1) + 1) * 60 * 1000;
+        setTimeout(afficherOpportuniteBourse, delai);
     }
 
     function ObtenirDateAujourdhui() {
@@ -251,157 +421,103 @@
     }
 
     function afficherOpportuniteBourse() {
-        const joueurKeys = Object.keys(window.localJoueurs || {});
-        if (joueurKeys.length === 0) {
-            programmerProchaineOpportunite();
-            return;
-        }
+        const keys = Object.keys(window.localJoueurs || {});
+        if (keys.length === 0) return programmerProchaineOpportunite();
 
         const dateAujourdhui = ObtenirDateAujourdhui();
-
-        // Filtrer les joueurs éligibles (moins de 2 fois aujourd'hui)
-        const joueursEligibles = joueurKeys.filter(id => {
+        const eligibles = keys.filter(id => {
             const j = window.localJoueurs[id];
-            const nbAujourdhui = (j.statBourse && j.statBourse.date === dateAujourdhui) ? j.statBourse.compteur : 0;
-            return nbAujourdhui < MAX_OPPORTUNITES_PAR_JOUR;
+            const nb = (j.statBourse && j.statBourse.date === dateAujourdhui) ? j.statBourse.compteur : 0;
+            return nb < MAX_OPPORTUNITES_PAR_JOUR;
         });
 
-        if (joueursEligibles.length === 0) {
-            programmerProchaineOpportunite();
-            return;
-        }
+        if (eligibles.length === 0) return programmerProchaineOpportunite();
 
-        // Sélection du joueur
-        const indexRandom = Math.floor(Math.random() * joueursEligibles.length);
-        const joueurChoisiId = joueursEligibles[indexRandom];
-        const joueurChoisiNom = window.localJoueurs[joueurChoisiId].nom;
-
-        // Calcul du prix de l'action : entre 50 € et le solde du joueur le plus riche
+        const idChoisi = eligibles[Math.floor(Math.random() * eligibles.length)];
         let soldeMax = 50;
-        joueurKeys.forEach(id => {
+        keys.forEach(id => {
             const s = window.localJoueurs[id].solde || 0;
             if (s > soldeMax) soldeMax = s;
         });
 
-        // Génération d'un coût aléatoire arrondi à l'euro près
-        const coutAction = Math.floor(Math.random() * (soldeMax - 50 + 1)) + 50;
+        const cout = Math.floor(Math.random() * (soldeMax - 50 + 1)) + 50;
 
-        document.getElementById('bourse-joueur-id').value = joueurChoisiId;
-        document.getElementById('bourse-joueur-nom').textContent = joueurChoisiNom;
-        document.getElementById('bourse-cout-action').value = coutAction;
-        document.getElementById('bourse-montant-impose').textContent = coutAction + ' €';
+        document.getElementById('bourse-joueur-id').value = idChoisi;
+        document.getElementById('bourse-joueur-nom').textContent = window.localJoueurs[idChoisi].nom;
+        document.getElementById('bourse-cout-action').value = cout;
+        document.getElementById('bourse-montant-impose').textContent = cout + ' €';
         document.getElementById('card-bourse').style.display = 'block';
     }
 
-    function incrementerCompteurJoueur(joueurId) {
-        const dateAujourdhui = ObtenirDateAujourdhui();
-        const joueur = window.localJoueurs[joueurId];
-        let compteurActuel = 0;
-
-        if (joueur.statBourse && joueur.statBourse.date === dateAujourdhui) {
-            compteurActuel = joueur.statBourse.compteur || 0;
-        }
-
-        joueursRef.child(joueurId).child('statBourse').set({
-            date: dateAujourdhui,
-            compteur: compteurActuel + 1
-        });
-    }
-
-    function financerImpactEtMettreAJour(joueurId, montantVariation, motifHisto, messageSuccesAlert) {
-        const joueur = window.localJoueurs[joueurId];
-        const soldeActuel = joueur.solde || 0;
-        const soldeTheorique = soldeActuel + montantVariation;
-
-        let nouveauSolde = soldeTheorique;
-        let montantPretAutomatique = 0;
-
-        if (soldeTheorique < 0) {
-            montantPretAutomatique = Math.abs(soldeTheorique);
-            nouveauSolde = 0;
-
-            const totalARembourser = Math.round(montantPretAutomatique * 1.50);
-
-            demandesRef.push({
-                emetteurId: joueurId,
-                emetteurNom: joueur.nom,
-                destId: "BANQUE",
-                destNom: "la Banque",
-                type: "Emprunt Automatique (Bourse)",
-                montant: montantPretAutomatique,
-                taux: 50,
-                status: 'valide'
-            });
-
-            histoRef.push({
-                texte: '🏦 PRÊT AUTOMATIQUE : La Banque prête ' + montantPretAutomatique + ' € à ' + joueur.nom + ' (Couverture Bourse/Pénalité). Total à rembourser : ' + totalARembourser + ' €',
-                date: new Date().toLocaleTimeString('fr-FR')
-            });
-        }
-
-        joueursRef.child(joueurId).update({
-            ancienSolde: soldeActuel,
-            solde: nouveauSolde
-        });
-
-        incrementerCompteurJoueur(joueurId);
-
-        if (montantPretAutomatique > 0) {
-            messageSuccesAlert += `\n\n⚠️ Fonds insuffisants ! La Banque t'a prêté ${montantPretAutomatique} € pour couvrir le découvert (Taux 50%).`;
-        }
-
-        alert(messageSuccesAlert);
-
-        histoRef.push({
-            texte: motifHisto,
-            date: new Date().toLocaleTimeString('fr-FR')
-        });
-
-        document.getElementById('card-bourse').style.display = 'none';
-        programmerProchaineOpportunite();
-    }
-
     function acheterActionFlash() {
-        const joueurId = document.getElementById('bourse-joueur-id').value;
-        const coutAction = parseInt(document.getElementById('bourse-cout-action').value);
+        const id = document.getElementById('bourse-joueur-id').value;
+        const cout = parseInt(document.getElementById('bourse-cout-action').value);
 
-        if (!joueurId || !window.localJoueurs[joueurId]) return alert("Aucun joueur désigné.");
-        if (!verifierPin(joueurId)) return alert("Code PIN incorrect !");
+        if (!verifierPin(id)) return alert("Code PIN incorrect !");
 
-        const joueur = window.localJoueurs[joueurId];
+        const varPct = (Math.random() * 2) - 1;
+        const profit = Math.round(cout * varPct);
+        const j = window.localJoueurs[id];
 
-        // Tirage de la variation entre -100% et +100% sur la valeur imposée de l'action
-        const variationPourcentage = (Math.random() * 2) - 1;
-        const variationArrondie = Math.round(variationPourcentage * 100);
-        const profitOuPerte = Math.round(coutAction * variationPourcentage);
-
-        let messageHisto = '';
-        let messageAlert = '';
-
-        if (profitOuPerte >= 0) {
-            messageHisto = `📈 BOURSE (${joueur.nom}) : Action de ${coutAction} € -> Gain de +${variationArrondie}% (+${profitOuPerte} €)`;
-            messageAlert = `📈 SUCCÈS ! Action à ${coutAction} €. Variation de +${variationArrondie}%. Tu gagnes +${profitOuPerte} € !`;
-        } else {
-            messageHisto = `📉 BOURSE (${joueur.nom}) : Action de ${coutAction} € -> Perte de ${variationArrondie}% (${profitOuPerte} €)`;
-            messageAlert = `📉 PERTE ! Action à ${coutAction} €. Variation de ${variationArrondie}%. Tu perds ${Math.abs(profitOuPerte)} €.`;
-        }
-
-        financerImpactEtMettreAJour(joueurId, profitOuPerte, messageHisto, messageAlert);
+        const msg = profit >= 0 ? `📈 Gain de +${Math.round(varPct*100)}% (+${profit} €)` : `📉 Perte de ${Math.round(varPct*100)}% (${profit} €)`;
+        financerImpact(id, profit, `BOURSE (${j.nom}) : ${msg}`, msg);
     }
 
     function refuserActionFlash() {
-        const joueurId = document.getElementById('bourse-joueur-id').value;
+        const id = document.getElementById('bourse-joueur-id').value;
+        if (!verifierPin(id)) return alert("Code PIN incorrect !");
 
-        if (!joueurId || !window.localJoueurs[joueurId]) return alert("Aucun joueur désigné.");
-        if (!verifierPin(joueurId)) return alert("Code PIN incorrect !");
-
-        const joueur = window.localJoueurs[joueurId];
-
-        const messageHisto = `🚫 BOURSE (${joueur.nom}) : Opportunité refusée (-${MONTANT_PENALITE} € de pénalité)`;
-        const messageAlert = `🚫 Opportunité refusée. Une pénalité de ${MONTANT_PENALITE} € a été prélevée sur ton compte.`;
-
-        financerImpactEtMettreAJour(joueurId, -MONTANT_PENALITE, messageHisto, messageAlert);
+        const j = window.localJoueurs[id];
+        financerImpact(id, -MONTANT_PENALITE, `BOURSE (${j.nom}) : Refus (-20 €)`, "Opportunité refusée (-20 €).");
     }
+
+    function financerImpact(id, variation, histoTxt, alertTxt) {
+        const j = window.localJoueurs[id];
+        const theorique = (j.solde || 0) + variation;
+        let finalSolde = theorique;
+        let pret = 0;
+
+        if (theorique < 0) {
+            pret = Math.abs(theorique);
+            finalSolde = 0;
+            demandesRef.push({ emetteurId: id, destId: "BANQUE", montant: pret, taux: 50, status: 'valide' });
+        }
+
+        const dateToday = ObtenirDateAujourdhui();
+        const cnt = (j.statBourse && j.statBourse.date === dateToday) ? (j.statBourse.compteur || 0) : 0;
+
+        joueursRef.child(id).update({ solde: finalSolde });
+        joueursRef.child(id).child('statBourse').set({ date: dateToday, compteur: cnt + 1 });
+
+        histoRef.push({ texte: histoTxt, date: new Date().toLocaleTimeString('fr-FR') });
+        document.getElementById('card-bourse').style.display = 'none';
+        alert(alertTxt + (pret > 0 ? `\n\nPrêt automatique de ${pret} € accordé par la Banque (50% taux).` : ''));
+        programmerProchaineOpportunite();
+    }
+
+    // FONCTIONS ADMIN
+    function ajouterJoueur() {
+        const nom = document.getElementById('admin-nom-joueur').value.trim();
+        const solde = parseInt(document.getElementById('admin-solde-initial').value);
+        const pin = document.getElementById('admin-pin-joueur').value.trim();
+
+        if (!nom || isNaN(solde) || !pin) return alert("Remplis tous les champs.");
+
+        joueursRef.push({ nom: nom, solde: solde, pin: pin, jokers: 1 });
+        alert(`Joueur ${nom} ajouté !`);
+        document.getElementById('admin-nom-joueur').value = '';
+    }
+
+    function reinitialiserPartie() {
+        if (confirm("⚠️ Veux-tu vraiment TOUT réinitialiser ?")) {
+            joueursRef.remove();
+            histoRef.remove();
+            demandesRef.remove();
+            alert("Partie réinitialisée.");
+        }
+    }
+
+    programmerProchaineOpportunite();
 </script>
 
 </body>
