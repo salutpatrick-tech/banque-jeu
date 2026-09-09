@@ -3,636 +3,1288 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banque Jeu - Complet & Bourse</title>
-    
-    <!-- Scripts Firebase (Compat) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-
+    <title>Banque du Jeu</title>
     <style>
         :root {
             --primary: #2563eb;
-            --primary-hover: #1d4ed8;
-            --bg-color: #f1f5f9;
+            --primary-dark: #1d4ed8;
+            --bg: #f8fafc;
             --card-bg: #ffffff;
-            --text-color: #0f172a;
+            --text: #1e293b;
+            --border: #e2e8f0;
             --danger: #ef4444;
-            --danger-hover: #dc2626;
+            --success: #22c55e;
             --warning: #f59e0b;
-            --success: #10b981;
         }
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--bg);
+            color: var(--text);
             margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
+            padding: 12px;
+            padding-bottom: 70px;
         }
 
         .container {
-            width: 100%;
             max-width: 600px;
-            display: flex;
-            flex-direction: column;
-            gap: 16px;
+            margin: 0 auto;
         }
 
-        /* NAVIGATION PAR ONGLETS */
-        .tabs {
+        header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            margin: 0 0 6px 0;
+            font-size: 1.5rem;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background-color: #e2e8f0;
+            color: #64748b;
+        }
+
+        .admin-badge.active {
+            background-color: #dcfce7;
+            color: #15803d;
+        }
+
+        .nav-tabs {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding-bottom: 4px;
+            background-color: #ffffff;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 1000;
         }
 
         .tab-btn {
             flex: 1;
-            padding: 10px;
-            background: #e2e8f0;
-            color: var(--text-color);
+            padding: 12px 4px;
             border: none;
-            border-radius: 8px;
-            cursor: pointer;
+            background: none;
+            font-size: 0.8rem;
             font-weight: 600;
-            white-space: nowrap;
+            color: #64748b;
+            cursor: pointer;
             text-align: center;
         }
 
         .tab-btn.active {
-            background: var(--primary);
-            color: white;
+            color: var(--primary);
+            border-top: 3px solid var(--primary);
         }
 
         .tab-content {
             display: none;
-            flex-direction: column;
-            gap: 16px;
         }
 
         .tab-content.active {
-            display: flex;
+            display: block;
         }
 
         .card {
-            background-color: var(--card-bg);
+            background: var(--card-bg);
             border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
-        h1, h2, h3 { margin-top: 0; }
+        h2 {
+            font-size: 1.1rem;
+            margin-top: 0;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
         label {
             display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
             margin-top: 10px;
             margin-bottom: 4px;
-            font-weight: 600;
-            font-size: 0.9rem;
         }
 
         input, select, button {
             width: 100%;
-            padding: 10px 12px;
-            border-radius: 6px;
-            border: 1px solid #cbd5e1;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
             box-sizing: border-box;
-            font-size: 1rem;
+            font-size: 0.95rem;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
         }
 
         button {
             background-color: var(--primary);
             color: white;
             border: none;
-            cursor: pointer;
             font-weight: 600;
-            margin-top: 10px;
-            transition: background-color 0.2s;
+            margin-top: 12px;
+            cursor: pointer;
         }
 
-        button:hover { background-color: var(--primary-hover); }
-        .btn-danger { background-color: var(--danger); }
-        .btn-danger:hover { background-color: var(--danger-hover); }
+        button:active {
+            opacity: 0.9;
+        }
 
-        .joueur-item {
+        .btn-danger { background-color: var(--danger); }
+        .btn-success { background-color: var(--success); }
+
+        .btn-danger-sm {
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            width: auto;
+            margin: 0;
+            cursor: pointer;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        li {
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
             display: flex;
             justify-content: space-between;
-            padding: 8px 0;
-            border-bottom: 1px solid #e2e8f0;
+            align-items: center;
         }
 
-        .histo-item {
+        li:last-child {
+            border-bottom: none;
+        }
+
+        .solde {
+            font-weight: bold;
+            color: var(--success);
+        }
+
+        .ancien-solde {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-decoration: line-through;
+            margin-left: 6px;
+        }
+
+        .taux-banque-info {
+            background-color: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 8px;
             font-size: 0.85rem;
-            color: #475569;
-            padding: 6px 0;
-            border-bottom: 1px dashed #e2e8f0;
+            font-weight: bold;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+
+        .badge-joker {
+            font-size: 0.8rem;
+            color: #8b5cf6;
+            font-weight: bold;
+        }
+
+        .chrono-banner {
+            background: linear-gradient(135deg, #1e1b4b, #312e81);
+            color: #ffffff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            text-align: center;
+            border: 2px solid #6366f1;
+        }
+
+        .chrono-title {
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #a5b4fc;
+        }
+
+        .chrono-display {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        .chrono-unit {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            min-width: 45px;
+        }
+
+        .chrono-number {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .chrono-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            color: #c7d2fe;
+        }
+
+        /* MODAL ROUE DE LA FORTUNE */
+        .modal-roue {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+
+        .modal-roue-content {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .roue-wrapper {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin: 16px auto;
+        }
+
+        .roue-pointer {
+            position: absolute;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 24px solid var(--danger);
+            z-index: 10;
+        }
+
+        #canvas-roue {
+            width: 260px;
+            height: 260px;
+            border-radius: 50%;
+            transition: transform 4s cubic-bezier(0.15, 0.99, 0.18, 0.99);
+        }
+
+        .admin-only { display: none; }
+
+        .demande-item {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .demande-actions {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        /* CARTE BOURSE FLASH */
+        .card-bourse-flash {
+            border: 2px solid #f59e0b;
+            background: #fffbeb;
         }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
-<div class="container">
-
-    <!-- ONGLETS DE NAVIGATION -->
-    <div class="tabs">
-        <button class="tab-btn active" onclick="changerOnglet('tab-solde')">📊 Comptes</button>
-        <button class="tab-btn" onclick="changerOnglet('tab-virement')">💸 Virement</button>
-        <button class="tab-btn" onclick="changerOnglet('tab-pret')">🤝 Emprunt</button>
-        <button class="tab-btn" onclick="changerOnglet('tab-admin')">⚙️ Admin</button>
-    </div>
-
-    <!-- CARTE BOURSE FLASH NOMINATIVE (TOUJOURS VISIBLE SI ACTIVE) -->
-    <div class="card" id="card-bourse" style="display: none; border: 2px solid #f59e0b; background: #fffbeb;">
-        <h2 style="color: #b45309;">⚡ Opportunité Boursière Nominative !</h2>
-        <p style="font-size: 0.9rem; margin-bottom: 8px;">
-            Réservée exclusivement à : <strong id="bourse-joueur-nom" style="font-size: 1.1rem; color: #d97706;">---</strong>
-        </p>
-        <p style="font-size: 1rem; margin-bottom: 8px; color: #1e293b;">
-            Prix de l'action imposé : <strong id="bourse-montant-impose" style="font-size: 1.2rem; color: #2563eb;">0 €</strong>
-        </p>
-        <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">
-            Risque : <strong>-100% à +100%</strong> (Résolution et revente immédiates).<br>
-            <i>En cas de perte ou pénalité supérieure au solde, un prêt automatique de la Banque comblera le manque.</i>
-        </p>
-
-        <input type="hidden" id="bourse-joueur-id">
-        <input type="hidden" id="bourse-cout-action">
-
-        <button onclick="acheterActionFlash()" style="background-color: #d97706; color: white; margin-top: 12px;">
-            🎲 Acheter l'action maintenant !
-        </button>
-        <button onclick="refuserActionFlash()" class="btn-danger" style="margin-top: 8px;" id="btn-refus-texte">
-            🚫 Refuser l'opportunité (Pénalité de 20 €)
-        </button>
-    </div>
-
-    <!-- ONGLET 1 : SOLDES ET HISTORIQUE -->
-    <div id="tab-solde" class="tab-content active">
-        <div class="card">
+    <div class="container">
+        <header>
             <h1>🏦 Banque du Jeu</h1>
-            <div id="liste-joueurs"><p>Chargement des joueurs...</p></div>
+            <span id="admin-badge" class="admin-badge">🔒 Mode Joueur</span>
+        </header>
+
+        <!-- BANNIÈRE CHRONOMÈTRE -->
+        <div id="chrono-banner" class="chrono-banner" style="display: none;">
+            <div id="chrono-description" class="chrono-title">⏱️ Défi en cours</div>
+            <div class="chrono-display">
+                <div class="chrono-unit"><div id="t-jours" class="chrono-number">0</div><div class="chrono-label">Jours</div></div>
+                <div class="chrono-unit"><div id="t-heures" class="chrono-number">00</div><div class="chrono-label">Heures</div></div>
+                <div class="chrono-unit"><div id="t-minutes" class="chrono-number">00</div><div class="chrono-label">Min</div></div>
+                <div class="chrono-unit"><div id="t-secondes" class="chrono-number">00</div><div class="chrono-label">Sec</div></div>
+            </div>
         </div>
 
-        <div class="card">
-            <h3>📜 Historique des activités</h3>
-            <div id="historique-liste" style="max-height: 250px; overflow-y: auto;">
-                <p style="font-size: 0.85rem; color: #94a3b8;">Aucune activité récente.</p>
+        <!-- CARTE BOURSE FLASH NOMINATIVE -->
+        <div class="card card-bourse-flash" id="card-bourse" style="display: none;">
+            <h2 style="color: #b45309;">⚡ Opportunité Boursière Nominative !</h2>
+            <p style="font-size: 0.9rem; margin-bottom: 8px;">
+                Réservée exclusivement à : <strong id="bourse-joueur-nom" style="font-size: 1.1rem; color: #d97706;">---</strong>
+            </p>
+            <p style="font-size: 1rem; margin-bottom: 8px; color: #1e293b;">
+                Prix de l'action imposé : <strong id="bourse-montant-impose" style="font-size: 1.2rem; color: #2563eb;">0 €</strong>
+            </p>
+            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">
+                Risque : <strong>-100% à +100%</strong> (Résolution et revente immédiates).<br>
+                <i>En cas de solde négatif, un prêt automatique de la Banque (Taux 50%) comblera le manque.</i>
+            </p>
+
+            <input type="hidden" id="bourse-joueur-id">
+            <input type="hidden" id="bourse-cout-action">
+
+            <button onclick="acheterActionFlash()" style="background-color: #d97706; color: white; margin-top: 12px;">
+                🎲 Acheter l'action maintenant !
+            </button>
+            <button onclick="refuserActionFlash()" class="btn-danger" style="margin-top: 8px;">
+                🚫 Refuser l'opportunité (Pénalité de 20 €)
+            </button>
+        </div>
+
+        <!-- ONGLET 1 : BANQUE -->
+        <div id="tab-banque" class="tab-content active">
+            <div class="taux-banque-info">
+                📊 Taux d'intérêt des prêts de la Banque : <strong>50 %</strong>
+            </div>
+
+            <div class="card">
+                <h2>👥 Comptes des Joueurs</h2>
+                <ul id="liste-joueurs">
+                    <li>Chargement des données...</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>💸 Effectuer une Transaction</h2>
+                <label for="transac-joueur">Joueur :</label>
+                <select id="transac-joueur">
+                    <option value="">Sélectionner un joueur</option>
+                </select>
+
+                <label for="transac-type">Type d'opération :</label>
+                <select id="transac-type">
+                    <option value="depot">Dépôt (+)</option>
+                    <option value="retrait">Retrait (-)</option>
+                    <option value="joker">Utiliser un Joker (Consommation)</option>
+                </select>
+
+                <label for="transac-montant">Montant (€) :</label>
+                <input type="number" id="transac-montant" placeholder="Ex: 50" min="1">
+
+                <button onclick="validerTransaction()">Valider la transaction</button>
+            </div>
+        </div>
+
+        <!-- ONGLET 2 : DEMANDES -->
+        <div id="tab-demandes" class="tab-content">
+            <div class="card">
+                <label for="demande-emetteur">Votre nom (débiteur) :</label>
+                <select id="demande-emetteur">
+                    <option value="">Sélectionner votre nom</option>
+                </select>
+
+                <label for="demande-destinataire">Destinataire (Joueur ou Banque) :</label>
+                <select id="demande-destinataire" onchange="gererAffichageTaux()">
+                    <option value="BANQUE">🏦 La Banque (Taux fixe 50%)</option>
+                </select>
+
+                <label for="demande-type">Type :</label>
+                <select id="demande-type">
+                    <option value="Emprunt">Demande d'emprunt</option>
+                    <option value="Virement">Virement entre joueurs</option>
+                    <option value="Autre">Autre demande</option>
+                </select>
+
+                <label for="demande-montant">Montant (€) :</label>
+                <input type="number" id="demande-montant" placeholder="Montant">
+
+                <div id="box-taux" style="display: none;">
+                    <label for="demande-taux">Taux d'intérêt proposé par le prêteur (%) :</label>
+                    <input type="number" id="demande-taux" placeholder="Ex: 10" min="0">
+                </div>
+
+                <button onclick="soumettreDemande()">Envoyer la demande</button>
+            </div>
+
+            <div class="card">
+                <h2>📋 Demandes en cours</h2>
+                <div id="liste-demandes">
+                    <p>Aucune demande active.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ONGLET 3 : HISTORIQUE -->
+        <div id="tab-historique" class="tab-content">
+            <div class="card">
+                <h2>📜 Historique Général</h2>
+                <ul id="historique-liste">
+                    <li>Chargement de l'historique...</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- ONGLET 4 : ADMIN -->
+        <div id="tab-admin" class="tab-content">
+            <div class="card">
+                <h2>🔑 Mode Administrateur</h2>
+                <div id="admin-auth-box">
+                    <label for="admin-pin">Mot de passe Admin :</label>
+                    <input type="password" id="admin-pin" placeholder="Entrez le code admin">
+                    <button onclick="connexionAdmin()">Se connecter</button>
+                </div>
+                <div id="admin-actions" class="admin-only">
+                    <p style="color: var(--success); font-weight: bold; margin-bottom: 12px;">Vous êtes connecté en tant qu'administrateur.</p>
+                    <button class="btn-danger" onclick="deconnexionAdmin()">Se déconnecter</button>
+                </div>
+            </div>
+
+            <!-- SAUVEGARDE & RESTAURATION BDD -->
+            <div class="card admin-only">
+                <h2>💾 Base de Données (Sauvegarde & Restauration)</h2>
+                <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 12px;">
+                    Gère les sauvegardes de sécurité au format JSON.
+                </p>
+
+                <button type="button" class="btn-success" onclick="sauvegarderBDD()" style="margin-bottom: 12px;">
+                    📥 Télécharger la sauvegarde (JSON)
+                </button>
+
+                <hr style="border: 0; border-top: 1px solid var(--border); margin: 12px 0;">
+
+                <p style="font-size: 0.85rem; color: var(--danger); font-weight: bold; margin-bottom: 8px;">
+                    ⚠️ La restauration écrasera toutes les données actuelles de la base !
+                </p>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="restaurerBDD(event)">
+                <button type="button" class="btn-danger" onclick="document.getElementById('importFile').click()">
+                    📤 Importer / Restaurer une sauvegarde
+                </button>
+            </div>
+
+            <div class="card admin-only">
+                <h2>🎡 Roue de la Fortune Quotidienne</h2>
+                <p id="admin-roue-statut">Statut : Chargement...</p>
+                <button onclick="forcerResetRoueJour()">Reset tirage du jour</button>
+            </div>
+
+            <div class="card admin-only">
+                <h2>➕ Ajouter un Joueur</h2>
+                <label for="nouveau-nom">Nom du Joueur :</label>
+                <input type="text" id="nouveau-nom" placeholder="Ex: Marie">
+
+                <label for="nouveau-pin">Code PIN (4 chiffres) :</label>
+                <input type="password" id="nouveau-pin" placeholder="Ex: 1234" maxlength="4">
+
+                <button onclick="creerJoueur()">Créer le joueur</button>
+            </div>
+
+            <div class="card admin-only">
+                <h2>⏱️ Configurer un Chronomètre</h2>
+                <label for="chrono-desc">Description du Défi / Minuteur :</label>
+                <input type="text" id="chrono-desc" placeholder="Ex: Fin du tour de jeu">
+
+                <label for="chrono-date">Date et Heure de fin :</label>
+                <input type="datetime-local" id="chrono-date">
+
+                <button onclick="lancerChrono()">Lancer le Chronomètre</button>
+                <button class="btn-danger" onclick="arreterChrono()" style="margin-top: 8px;">Arrêter le Chronomètre</button>
             </div>
         </div>
     </div>
 
-    <!-- ONGLET 2 : TRANSACTIONS & VIREMENTS -->
-    <div id="tab-virement" class="tab-content">
-        <div class="card">
-            <h2>💸 Effectuer une Transaction</h2>
-            <label>Émetteur :</label>
-            <select id="virement-emetteur"></select>
-
-            <label>Destinataire :</label>
-            <select id="virement-destinataire"></select>
-
-            <label>Montant (€) :</label>
-            <input type="number" id="virement-montant" min="1" placeholder="Ex: 50">
-
-            <button onclick="effectuerVirement()">Valider le virement</button>
-        </div>
-    </div>
-
-    <!-- ONGLET 3 : DEMANDE D'EMPRUNT -->
-    <div id="tab-pret" class="tab-content">
-        <div class="card">
-            <h2>🤝 Demander un Prêt (Banque ou Joueur)</h2>
-            <label>Emprunteur :</label>
-            <select id="pret-emprunteur"></select>
-
-            <label>Prêteur :</label>
-            <select id="pret-preteur"></select>
-
-            <label>Montant demandé (€) :</label>
-            <input type="number" id="pret-montant" min="1" placeholder="Ex: 100">
-
-            <label>Taux d'intérêt (%) :</label>
-            <input type="number" id="pret-taux" value="10">
-
-            <button onclick="demanderPret()">Envoyer la demande d'emprunt</button>
-        </div>
-    </div>
-
-    <!-- ONGLET 4 : ADMINISTRATION -->
-    <div id="tab-admin" class="tab-content">
-        <div class="card">
-            <h2>⚙️ Administration</h2>
+    <!-- MODAL POPUP ROUE DE LA FORTUNE -->
+    <div id="modal-roue" class="modal-roue">
+        <div class="modal-roue-content">
+            <h3 style="margin:0; color: var(--primary-dark);">🎡 ROUE SURPRISE DE LA FORTUNE !</h3>
+            <p style="font-size:0.9rem; margin:8px 0;" id="roue-joueur-nom">Félicitations, tu as été tiré au sort aujourd'hui !</p>
             
-            <h3>Ajouter un joueur</h3>
-            <input type="text" id="admin-nom-joueur" placeholder="Nom du joueur">
-            <input type="number" id="admin-pin-joueur" placeholder="Code PIN (4 chiffres)" style="margin-top:6px;">
-            <button onclick="ajouterJoueur()">Créer le joueur</button>
+            <div class="roue-wrapper">
+                <div class="roue-pointer"></div>
+                <canvas id="canvas-roue" width="260" height="260"></canvas>
+            </div>
 
-            <hr style="margin: 20px 0; border: none; border-top: 1px solid #cbd5e1;">
-
-            <h3>Ajustement manuel de solde</h3>
-            <select id="admin-joueur-ajustement"></select>
-            <input type="number" id="admin-montant-ajustement" placeholder="Montant (ex: 50 ou -50)" style="margin-top:6px;">
-            <button onclick="ajusterSoldeAdmin()">Appliquer la modification</button>
-
-            <hr style="margin: 20px 0; border: none; border-top: 1px solid #cbd5e1;">
-
-            <button onclick="reinitialiserPartie()" class="btn-danger">⚠️ Réinitialiser la partie</button>
+            <button id="btn-tourner-roue" onclick="tournerLaRoue()" style="font-size: 1.1rem; padding: 12px; background: var(--success);">
+                🎯 Lancer la Roue !
+            </button>
+            <p id="roue-resultat-txt" style="font-weight: bold; font-size: 1.1rem; margin-top: 12px;"></p>
         </div>
     </div>
 
-</div>
+    <nav class="nav-tabs">
+        <button class="tab-btn active" onclick="changerOnglet('banque', this)">🏦 Banque</button>
+        <button class="tab-btn" onclick="changerOnglet('demandes', this)">📩 Demandes</button>
+        <button class="tab-btn" onclick="changerOnglet('historique', this)">📜 Historique</button>
+        <button class="tab-btn" onclick="changerOnglet('admin', this)">⚙️ Admin</button>
+    </nav>
 
-<script>
-    // ==========================================
-    // 1. CONFIGURATION FIREBASE
-    // ==========================================
-    const firebaseConfig = {
-        apiKey: "TON_API_KEY",
-        authDomain: "TON_PROJECT.firebaseapp.com",
-        databaseURL: "https://TON_PROJECT-default-rtdb.firebaseio.com",
-        projectId: "TON_PROJECT",
-        storageBucket: "TON_PROJECT.appspot.com",
-        messagingSenderId: "123456789",
-        appId: "1:123456789:web:abcdef"
-    };
+    <script>
+        const firebaseConfig = {
+            apiKey: "AiZaSyBzJugWBBzfzpgelCAGNAjycBMZv64WHbc",
+            authDomain: "banque-jeu.firebaseapp.com",
+            databaseURL: "https://banque-jeu-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "banque-jeu",
+            storageBucket: "banque-jeu.firebasestorage.app",
+            messagingSenderId: "333582703295",
+            appId: "1:333582703295:web:aedbdfe4fe3ecd1ed8c40a"
+        };
 
-    const MONTANT_PENALITE = 20;
-    const MAX_OPPORTUNITES_PAR_JOUR = 2;
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
+        const joueursRef = db.ref('joueurs');
+        const histoRef = db.ref('historique');
+        const demandesRef = db.ref('demandes');
+        const chronoRef = db.ref('config/chrono');
+        const roueRef = db.ref('config/roueQuotidienne');
 
-    const joueursRef = database.ref('joueurs');
-    const histoRef = database.ref('historique');
-    const demandesRef = database.ref('demandes');
+        const MONTANT_PENALITE_BOURSE = 20;
+        const MAX_OPPORTUNITES_BOURSE_PAR_JOUR = 2;
 
-    window.localJoueurs = {};
+        window.localJoueurs = {};
+        window.isAdmin = false;
+        let chronoInterval = null;
+        let localRoueConfig = {};
 
-    document.getElementById('btn-refus-texte').textContent = `🚫 Refuser l'opportunité (Pénalité de -${MONTANT_PENALITE} €)`;
-
-    // ==========================================
-    // 2. GESTION DES ONGLETS
-    // ==========================================
-    function changerOnglet(tabId) {
-        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        
-        document.getElementById(tabId).classList.add('active');
-        event.currentTarget.classList.add('active');
-    }
-
-    // ==========================================
-    // 3. SYNCHRONISATION EN TEMPS RÉEL (FIREBASE)
-    // ==========================================
-    joueursRef.on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        window.localJoueurs = data;
-        
-        // Mettre à jour l'affichage de la liste
-        const container = document.getElementById('liste-joueurs');
-        container.innerHTML = '';
-
-        // Mettre à jour les listes déroulantes (<select>)
-        const selects = [
-            document.getElementById('virement-emetteur'),
-            document.getElementById('virement-destinataire'),
-            document.getElementById('pret-emprunteur'),
-            document.getElementById('pret-preteur'),
-            document.getElementById('admin-joueur-ajustement')
+        // SEGMENTS ROUE ET PROBABILITÉS
+        const segmentsRoue = [
+            { label: "🃏 +1 Joker", color: "#8b5cf6", type: "joker", value: 1, weight: 15 },
+            { label: "💶 +20 €", color: "#22c55e", type: "argent", value: 20, weight: 30 },
+            { label: "💶 +50 €", color: "#3b82f6", type: "argent", value: 50, weight: 10 },
+            { label: "❌ Perdu !", color: "#94a3b8", type: "rien", value: 0, weight: 30 },
+            { label: "💸 -10 €", color: "#ef4444", type: "argent", value: -10, weight: 15 }
         ];
 
-        selects.forEach(s => { if(s) s.innerHTML = ''; });
+        function changerOnglet(tabId, element) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            element.classList.add('active');
+        }
 
-        // Option Banque pour les virements/prêts
-        const addOption = (s, val, txt) => { if(s) s.innerHTML += `<option value="${val}">${txt}</option>`; };
-        addOption(document.getElementById('virement-destinataire'), 'BANQUE', '🏦 La Banque');
-        addOption(document.getElementById('virement-emetteur'), 'BANQUE', '🏦 La Banque');
-        addOption(document.getElementById('pret-preteur'), 'BANQUE', '🏦 La Banque');
+        function connexionAdmin() {
+            const pin = document.getElementById('admin-pin').value;
+            if (pin === "1234") {
+                window.isAdmin = true;
+                document.getElementById('admin-badge').textContent = "🔓 Mode Admin";
+                document.getElementById('admin-badge').classList.add('active');
+                document.getElementById('admin-auth-box').style.display = 'none';
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+                document.getElementById('admin-pin').value = '';
+                actualiserAffichageJoueurs();
+                actualiserHistoriqueUI();
+            } else alert("Code Administrateur incorrect.");
+        }
 
-        Object.keys(data).forEach(id => {
-            const j = data[id];
+        function deconnexionAdmin() {
+            window.isAdmin = false;
+            document.getElementById('admin-badge').textContent = "🔒 Mode Joueur";
+            document.getElementById('admin-badge').classList.remove('active');
+            document.getElementById('admin-auth-box').style.display = 'block';
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+            actualiserAffichageJoueurs();
+            actualiserHistoriqueUI();
+        }
+
+        // ECOUTE JOUEURS
+        joueursRef.on('value', (snapshot) => {
+            window.localJoueurs = snapshot.val() || {};
+            actualiserAffichageJoueurs();
+            verifierDeclenchementRoue();
+        });
+
+        function actualiserAffichageJoueurs() {
+            const data = window.localJoueurs;
+            const listeUi = document.getElementById('liste-joueurs');
+            const selectTransac = document.getElementById('transac-joueur');
+            const selectEmetteur = document.getElementById('demande-emetteur');
+            const selectDest = document.getElementById('demande-destinataire');
+
+            listeUi.innerHTML = '';
+            selectTransac.innerHTML = '<option value="">Sélectionner un joueur</option>';
+            selectEmetteur.innerHTML = '<option value="">Sélectionner votre nom</option>';
+            selectDest.innerHTML = '<option value="BANQUE">🏦 La Banque (Taux fixe 50%)</option>';
+
+            if (Object.keys(data).length === 0) {
+                listeUi.innerHTML = '<li>Aucun joueur enregistré.</li>';
+                return;
+            }
+
+            Object.keys(data).forEach(id => {
+                const j = data[id];
+                const soldeActuel = j.solde || 0;
+                const ancienSolde = j.ancienSolde !== undefined ? j.ancienSolde : null;
+
+                const li = document.createElement('li');
+                li.innerHTML = '<div><strong>' + j.nom + '</strong>' +
+                    '<div class="solde">' + soldeActuel + ' €' + (ancienSolde !== null ? ' <span class="ancien-solde">(Ancien: ' + ancienSolde + ' €)</span>' : '') + '</div>' +
+                    '<div class="badge-joker">🃏 Jokers : ' + (j.jokers || 0) + ' / 2</div></div>' +
+                    '<div>' + (window.isAdmin ? '<button class="btn-danger-sm" onclick="supprimerJoueur(\'' + id + '\')">❌</button>' : '') + '</div>';
+                listeUi.appendChild(li);
+
+                selectTransac.options.add(new Option(j.nom, id));
+                selectEmetteur.options.add(new Option(j.nom, id));
+                selectDest.options.add(new Option(j.nom, id));
+            });
+        }
+
+        function verifierPin(joueurId) {
+            const joueur = window.localJoueurs[joueurId];
+            if (!joueur) return false;
+            const pinSaisi = prompt('Code PIN de ' + joueur.nom + ' :');
+            return pinSaisi === joueur.pin;
+        }
+
+        function enregistrerActivite() {
+            const dateAujourdhui = new Date().toLocaleDateString('fr-FR');
+            roueRef.transaction(current => {
+                if (!current || current.date !== dateAujourdhui) {
+                    return { date: dateAujourdhui, nbActions: 1, tire: false, joueurGagnantId: null };
+                } else {
+                    current.nbActions = (current.nbActions || 0) + 1;
+                    return current;
+                }
+            });
+        }
+
+        // ROUE DE LA FORTUNE QUOTIDIENNE
+        roueRef.on('value', snapshot => {
+            localRoueConfig = snapshot.val() || {};
+            const dateAujourdhui = new Date().toLocaleDateString('fr-FR');
+
+            const statutTxt = document.getElementById('admin-roue-statut');
+            if (statutTxt) {
+                if (localRoueConfig.date !== dateAujourdhui) {
+                    statutTxt.textContent = "Statut : En attente d'activité aujourd'hui.";
+                } else if (localRoueConfig.tire) {
+                    const nomJ = window.localJoueurs[localRoueConfig.joueurGagnantId]?.nom || "Inconnu";
+                    statutTxt.textContent = "Statut : Déjà apparue aujourd'hui pour " + nomJ;
+                } else {
+                    statutTxt.textContent = "Statut : " + (localRoueConfig.nbActions || 0) + " / 3 actions avant tirage.";
+                }
+            }
+            verifierDeclenchementRoue();
+        });
+
+        function verifierDeclenchementRoue() {
+            const dateAujourdhui = new Date().toLocaleDateString('fr-FR');
+            const joueurKeys = Object.keys(window.localJoueurs);
+
+            if (!localRoueConfig || localRoueConfig.date !== dateAujourdhui || localRoueConfig.tire || joueurKeys.length === 0) {
+                return;
+            }
+
+            if ((localRoueConfig.nbActions || 0) >= 3 && !localRoueConfig.joueurGagnantId) {
+                const indexRandom = Math.floor(Math.random() * joueurKeys.length);
+                const joueurChoisiId = joueurKeys[indexRandom];
+
+                roueRef.update({
+                    joueurGagnantId: joueurChoisiId
+                });
+            } else if (localRoueConfig.joueurGagnantId) {
+                dessinerRoue();
+                document.getElementById('modal-roue').style.display = 'flex';
+                const jNom = window.localJoueurs[localRoueConfig.joueurGagnantId]?.nom || "";
+                document.getElementById('roue-joueur-nom').textContent = '🎉 ' + jNom + ', tu as été tiré au sort pour tourner la Roue !';
+            }
+        }
+
+        function dessinerRoue() {
+            const canvas = document.getElementById('canvas-roue');
+            const ctx = canvas.getContext('2d');
+            const numSegments = segmentsRoue.length;
+            const anglePerSeg = (2 * Math.PI) / numSegments;
+
+            ctx.clearRect(0,0,260,260);
+
+            for (let i = 0; i < numSegments; i++) {
+                const angle = i * anglePerSeg;
+                ctx.beginPath();
+                ctx.fillStyle = segmentsRoue[i].color;
+                ctx.moveTo(130, 130);
+                ctx.arc(130, 130, 130, angle, angle + anglePerSeg);
+                ctx.lineTo(130, 130);
+                ctx.fill();
+
+                ctx.save();
+                ctx.translate(130, 130);
+                ctx.rotate(angle + anglePerSeg / 2);
+                ctx.textAlign = "right";
+                ctx.fillStyle = "white";
+                ctx.font = "bold 13px sans-serif";
+                ctx.fillText(segmentsRoue[i].label, 115, 5);
+                ctx.restore();
+            }
+        }
+
+        function tournerLaRoue() {
+            const jId = localRoueConfig.joueurGagnantId;
+            if (!jId) return;
+
+            if (!verifierPin(jId)) return alert("Code PIN incorrect !");
+
+            const btn = document.getElementById('btn-tourner-roue');
+            btn.disabled = true;
+
+            let totalWeight = segmentsRoue.reduce((sum, s) => sum + s.weight, 0);
+            let random = Math.random() * totalWeight;
+            let selectedIndex = 0;
+
+            for (let i = 0; i < segmentsRoue.length; i++) {
+                if (random < segmentsRoue[i].weight) {
+                    selectedIndex = i;
+                    break;
+                }
+                random -= segmentsRoue[i].weight;
+            }
+
+            const canvas = document.getElementById('canvas-roue');
+            const numSegments = segmentsRoue.length;
+            const degreesPerSegment = 360 / numSegments;
             
-            // Affichage Dashboard
-            const div = document.createElement('div');
-            div.className = 'joueur-item';
-            div.innerHTML = `<span><strong>${j.nom}</strong></span> <span>${j.solde || 0} €</span>`;
-            container.appendChild(div);
+            const targetDegree = 360 - (selectedIndex * degreesPerSegment) - (degreesPerSegment / 2) - 90;
+            const totalRotation = 360 * 5 + targetDegree;
 
-            // Remplissage Selects
-            selects.forEach(s => addOption(s, id, j.nom));
-        });
-    });
+            canvas.style.transform = 'rotate(' + totalRotation + 'deg)';
 
-    histoRef.limitToLast(10).on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        const container = document.getElementById('historique-liste');
-        container.innerHTML = '';
+            setTimeout(() => {
+                const gain = segmentsRoue[selectedIndex];
+                const joueur = window.localJoueurs[jId];
+                let txtRes = "Résultat : " + gain.label;
 
-        Object.keys(data).reverse().forEach(id => {
-            const h = data[id];
-            const div = document.createElement('div');
-            div.className = 'histo-item';
-            div.textContent = `[${h.date}] ${h.texte}`;
-            container.appendChild(div);
-        });
-    });
+                if (gain.type === "argent") {
+                    const soldeActuel = joueur.solde || 0;
+                    joueursRef.child(jId).update({
+                        ancienSolde: soldeActuel,
+                        solde: soldeActuel + gain.value
+                    });
+                } else if (gain.type === "joker") {
+                    const jokersActuels = joueur.jokers || 0;
+                    if (jokersActuels >= 2) {
+                        txtRes += " (2 Jokers déjà détenus ➔ Converti en +25 € !)";
+                        const soldeActuel = joueur.solde || 0;
+                        joueursRef.child(jId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 25 });
+                    } else {
+                        joueursRef.child(jId).child('jokers').set(jokersActuels + 1);
+                    }
+                }
 
-    // ==========================================
-    // 4. VÉRIFICATION PIN
-    // ==========================================
-    function verifierPin(joueurId) {
-        if (joueurId === 'BANQUE') return true;
-        const joueur = window.localJoueurs[joueurId];
-        if (!joueur || !joueur.pin) return true;
+                document.getElementById('roue-resultat-txt').textContent = txtRes;
 
-        const saisie = prompt(`Saisis le code PIN pour ${joueur.nom} :`);
-        if (saisie === String(joueur.pin)) {
-            return true;
-        } else {
-            alert("Code PIN incorrect !");
-            return false;
-        }
-    }
+                histoRef.push({
+                    texte: '🎡 ROUE QUOTIDIENNE : ' + joueur.nom + ' a tourné la roue et a obtenu ➔ ' + txtRes,
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
 
-    // ==========================================
-    // 5. FONCTIONS VIREMENT & PRÊT CLASSIQUE
-    // ==========================================
-    function effectuerVirement() {
-        const emetteurId = document.getElementById('virement-emetteur').value;
-        const destId = document.getElementById('virement-destinataire').value;
-        const montant = parseInt(document.getElementById('virement-montant').value);
+                roueRef.update({ tire: true });
 
-        if (!montant || montant <= 0) return alert("Montant invalide.");
-        if (emetteurId === destId) return alert("L'émetteur et le destinataire doivent être différents.");
-        if (!verifierPin(emetteurId)) return;
+                setTimeout(() => {
+                    document.getElementById('modal-roue').style.display = 'none';
+                    canvas.style.transform = 'rotate(0deg)';
+                    btn.disabled = false;
+                    document.getElementById('roue-resultat-txt').textContent = '';
+                }, 3500);
 
-        if (emetteurId !== 'BANQUE') {
-            const soldeEmetteur = window.localJoueurs[emetteurId].solde || 0;
-            if (soldeEmetteur < montant) return alert("Solde insuffisant.");
-            joueursRef.child(emetteurId).update({ solde: soldeEmetteur - montant });
+            }, 4000);
         }
 
-        if (destId !== 'BANQUE') {
-            const soldeDest = window.localJoueurs[destId].solde || 0;
-            joueursRef.child(destId).update({ solde: soldeDest + montant });
+        function forcerResetRoueJour() {
+            roueRef.set({ date: "", nbActions: 0, tire: false, joueurGagnantId: null });
+            alert("Roue remise à zéro.");
         }
 
-        const nomEmetteur = emetteurId === 'BANQUE' ? 'La Banque' : window.localJoueurs[emetteurId].nom;
-        const nomDest = destId === 'BANQUE' ? 'La Banque' : window.localJoueurs[destId].nom;
+        function creerJoueur() {
+            const nom = document.getElementById('nouveau-nom').value.trim();
+            const pin = document.getElementById('nouveau-pin').value.trim();
 
-        histoRef.push({
-            texte: `💸 VIREMENT : ${nomEmetteur} a envoyé ${montant} € à ${nomDest}`,
-            date: new Date().toLocaleTimeString('fr-FR')
-        });
+            if (!nom || pin.length !== 4) return alert("Nom requis et PIN de 4 chiffres.");
 
-        alert("Virement effectué avec succès !");
-        document.getElementById('virement-montant').value = '';
-    }
+            joueursRef.push().set({ nom: nom, pin: pin, solde: 100, ancienSolde: 100, jokers: 0 });
+            histoRef.push({ texte: '👤 Nouveau joueur créé : ' + nom, date: new Date().toLocaleTimeString('fr-FR') });
 
-    function demanderPret() {
-        const empId = document.getElementById('pret-emprunteur').value;
-        const preteurId = document.getElementById('pret-preteur').value;
-        const montant = parseInt(document.getElementById('pret-montant').value);
-        const taux = parseInt(document.getElementById('pret-taux').value) || 0;
-
-        if (!montant || montant <= 0) return alert("Montant invalide.");
-        if (empId === preteurId) return alert("Action impossible.");
-        if (!verifierPin(empId)) return;
-
-        // Validation immédiate pour la banque
-        const soldeEmp = window.localJoueurs[empId].solde || 0;
-        joueursRef.child(empId).update({ solde: soldeEmp + montant });
-
-        const nomPreteur = preteurId === 'BANQUE' ? 'la Banque' : window.localJoueurs[preteurId].nom;
-        const nomEmp = window.localJoueurs[empId].nom;
-
-        histoRef.push({
-            texte: `🤝 EMPRUNT : ${nomEmp} a emprunté ${montant} € auprès de ${nomPreteur} (Taux: ${taux}%)`,
-            date: new Date().toLocaleTimeString('fr-FR')
-        });
-
-        alert("Emprunt accordé et solde crédité !");
-    }
-
-    // ==========================================
-    // 6. ADMINISTRATION
-    // ==========================================
-    function ajouterJoueur() {
-        const nom = document.getElementById('admin-nom-joueur').value.trim();
-        const pin = document.getElementById('admin-pin-joueur').value.trim();
-
-        if (!nom) return alert("Nom requis.");
-        
-        joueursRef.push({
-            nom: nom,
-            pin: pin || null,
-            solde: 500 // Solde de départ par défaut
-        });
-
-        document.getElementById('admin-nom-joueur').value = '';
-        document.getElementById('admin-pin-joueur').value = '';
-        alert(`Joueur ${nom} ajouté !`);
-    }
-
-    function ajusterSoldeAdmin() {
-        const jId = document.getElementById('admin-joueur-ajustement').value;
-        const montant = parseInt(document.getElementById('admin-montant-ajustement').value);
-
-        if (!jId || isNaN(montant)) return alert("Saisie invalide.");
-
-        const soldeActuel = window.localJoueurs[jId].solde || 0;
-        joueursRef.child(jId).update({ solde: soldeActuel + montant });
-
-        histoRef.push({
-            texte: `⚙️ ADMIN : Solde de ${window.localJoueurs[jId].nom} ajusté de (${montant > 0 ? '+' : ''}${montant} €)`,
-            date: new Date().toLocaleTimeString('fr-FR')
-        });
-
-        alert("Ajustement appliqué.");
-    }
-
-    function reinitialiserPartie() {
-        if (confirm("⚠️ Voulez-vous vraiment TOUT réinitialiser ?")) {
-            joueursRef.remove();
-            histoRef.remove();
-            demandesRef.remove();
-            alert("Partie réinitialisée.");
-        }
-    }
-
-    // ==========================================
-    // 7. MOTEUR BOURSE FLASH & PRÊT AUTOMATIQUE
-    // ==========================================
-    let delaiApparitionTimeout = null;
-
-    programmerProchaineOpportunite();
-
-    function programmerProchaineOpportunite() {
-        const delaiMin = 1 * 60 * 1000;
-        const delaiMax = 5 * 60 * 1000;
-        const delaiAleatoire = Math.floor(Math.random() * (delaiMax - delaiMin + 1)) + delaiMin;
-
-        delaiApparitionTimeout = setTimeout(() => {
-            afficherOpportuniteBourse();
-        }, delaiAleatoire);
-    }
-
-    function ObtenirDateAujourdhui() {
-        const d = new Date();
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    }
-
-    function afficherOpportuniteBourse() {
-        const joueurKeys = Object.keys(window.localJoueurs || {});
-        if (joueurKeys.length === 0) {
-            programmerProchaineOpportunite();
-            return;
+            document.getElementById('nouveau-nom').value = '';
+            document.getElementById('nouveau-pin').value = '';
+            enregistrerActivite();
         }
 
-        const dateAujourdhui = ObtenirDateAujourdhui();
-
-        const joueursEligibles = joueurKeys.filter(id => {
-            const j = window.localJoueurs[id];
-            const nbAujourdhui = (j.statBourse && j.statBourse.date === dateAujourdhui) ? j.statBourse.compteur : 0;
-            return nbAujourdhui < MAX_OPPORTUNITES_PAR_JOUR;
-        });
-
-        if (joueursEligibles.length === 0) {
-            programmerProchaineOpportunite();
-            return;
+        function supprimerJoueur(id) {
+            if (confirm("Voulez-vous vraiment supprimer ce joueur ?")) joueursRef.child(id).remove();
         }
 
-        const indexRandom = Math.floor(Math.random() * joueursEligibles.length);
-        const joueurChoisiId = joueursEligibles[indexRandom];
-        const joueurChoisiNom = window.localJoueurs[joueurChoisiId].nom;
+        function validerTransaction() {
+            const id = document.getElementById('transac-joueur').value;
+            const type = document.getElementById('transac-type').value;
+            const montant = parseInt(document.getElementById('transac-montant').value);
 
-        let soldeMax = 50;
-        joueurKeys.forEach(id => {
-            const s = window.localJoueurs[id].solde || 0;
-            if (s > soldeMax) soldeMax = s;
-        });
+            if (!id) return alert("Sélectionnez un joueur.");
+            if (!verifierPin(id)) return alert("Code PIN incorrect !");
 
-        const coutAction = Math.floor(Math.random() * (soldeMax - 50 + 1)) + 50;
+            const joueur = window.localJoueurs[id];
+            let soldeActuel = joueur.solde || 0;
+            let jokersActuels = joueur.jokers || 0;
 
-        document.getElementById('bourse-joueur-id').value = joueurChoisiId;
-        document.getElementById('bourse-joueur-nom').textContent = joueurChoisiNom;
-        document.getElementById('bourse-cout-action').value = coutAction;
-        document.getElementById('bourse-montant-impose').textContent = coutAction + ' €';
-        document.getElementById('card-bourse').style.display = 'block';
-    }
+            if (type === 'depot') {
+                if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+                joueursRef.child(id).update({ ancienSolde: soldeActuel, solde: soldeActuel + montant });
+                histoRef.push({ texte: '💳 ' + joueur.nom + ' a déposé ' + montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
+            } else if (type === 'retrait') {
+                if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+                joueursRef.child(id).update({ ancienSolde: soldeActuel, solde: soldeActuel - montant });
+                histoRef.push({ texte: '💳 ' + joueur.nom + ' a retiré ' + montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
+            } else if (type === 'joker') {
+                if (jokersActuels <= 0) return alert(joueur.nom + " n'a aucun Joker !");
+                joueursRef.child(id).child('jokers').set(jokersActuels - 1);
+                histoRef.push({ texte: '🃏 ' + joueur.nom + ' a utilisé 1 Joker (' + (jokersActuels - 1) + '/2 restant)', date: new Date().toLocaleTimeString('fr-FR') });
+            }
 
-    function incrementerCompteurJoueur(joueurId) {
-        const dateAujourdhui = ObtenirDateAujourdhui();
-        const joueur = window.localJoueurs[joueurId];
-        let compteurActuel = 0;
-
-        if (joueur.statBourse && joueur.statBourse.date === dateAujourdhui) {
-            compteurActuel = joueur.statBourse.compteur || 0;
+            document.getElementById('transac-montant').value = '';
+            enregistrerActivite();
         }
 
-        joueursRef.child(joueurId).child('statBourse').set({
-            date: dateAujourdhui,
-            compteur: compteurActuel + 1
-        });
-    }
+        function gererAffichageTaux() {
+            const destId = document.getElementById('demande-destinataire').value;
+            document.getElementById('box-taux').style.display = (destId !== "BANQUE") ? "block" : "none";
+        }
 
-    function financerImpactEtMettreAJour(joueurId, montantVariation, motifHisto, messageSuccesAlert) {
-        const joueur = window.localJoueurs[joueurId];
-        const soldeActuel = joueur.solde || 0;
-        const soldeTheorique = soldeActuel + montantVariation;
+        function soumettreDemande() {
+            const emetteurId = document.getElementById('demande-emetteur').value;
+            const destId = document.getElementById('demande-destinataire').value;
+            const type = document.getElementById('demande-type').value;
+            const montant = parseInt(document.getElementById('demande-montant').value) || 0;
+            const tauxSaisi = parseInt(document.getElementById('demande-taux').value);
 
-        let nouveauSolde = soldeTheorique;
-        let montantPretAutomatique = 0;
+            if (!emetteurId) return alert("Sélectionnez votre nom.");
+            if (!verifierPin(emetteurId)) return alert("Code PIN incorrect !");
 
-        if (soldeTheorique < 0) {
-            montantPretAutomatique = Math.abs(soldeTheorique);
-            nouveauSolde = 0;
-
-            const totalARembourser = Math.round(montantPretAutomatique * 1.50);
+            const emetteurNom = window.localJoueurs[emetteurId].nom;
+            const destNom = destId === "BANQUE" ? "la Banque" : window.localJoueurs[destId].nom;
+            
+            let tauxText = "";
+            let taux = 0;
+            if (destId === "BANQUE") {
+                taux = 50;
+                tauxText = " | Taux: 50%";
+            } else if (!isNaN(tauxSaisi) && tauxSaisi >= 0) {
+                taux = tauxSaisi;
+                tauxText = ' | Taux proposé: ' + tauxSaisi + '%';
+            }
 
             demandesRef.push({
-                emetteurId: joueurId,
-                emetteurNom: joueur.nom,
-                destId: "BANQUE",
-                destNom: "la Banque",
-                type: "Emprunt Automatique (Bourse)",
-                montant: montantPretAutomatique,
-                taux: 50,
-                status: 'valide'
+                emetteurId: emetteurId,
+                emetteurNom: emetteurNom,
+                destId: destId,
+                destNom: destNom,
+                type: type,
+                montant: montant,
+                taux: taux,
+                status: 'attente'
             });
 
             histoRef.push({
-                texte: '🏦 PRÊT AUTOMATIQUE : La Banque prête ' + montantPretAutomatique + ' € à ' + joueur.nom + ' (Couverture Bourse/Pénalité). Total à rembourser : ' + totalARembourser + ' €',
+                texte: '📩 Demande de ' + emetteurNom + ' vers ' + destNom + ' (' + type + ' : ' + montant + ' €' + tauxText + ')',
                 date: new Date().toLocaleTimeString('fr-FR')
+            });
+
+            document.getElementById('demande-montant').value = '';
+            document.getElementById('demande-taux').value = '';
+            enregistrerActivite();
+        }
+
+        demandesRef.on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            const conteneur = document.getElementById('liste-demandes');
+            conteneur.innerHTML = '';
+
+            if (Object.keys(data).length === 0) {
+                conteneur.innerHTML = '<p>Aucune demande active.</p>';
+                return;
+            }
+
+            Object.keys(data).forEach(id => {
+                const d = data[id];
+                const item = document.createElement('div');
+                item.className = 'demande-item';
+                item.innerHTML = '<div><strong>' + d.emetteurNom + '</strong> ➔ <strong>' + d.destNom + '</strong> (' + d.type + ')</div>' +
+                    '<div>Montant : <strong>' + d.montant + ' €</strong>' + (d.taux ? ' | Taux : <strong>' + d.taux + '%</strong>' : '') + '</div>' +
+                    '<div class="demande-actions">' +
+                    '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                    '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser</button>' +
+                    '</div>';
+                conteneur.appendChild(item);
+            });
+        });
+
+        function traiterDemande(id, accepter) {
+            demandesRef.child(id).once('value', (snapshot) => {
+                const d = snapshot.val();
+                if (!d) return;
+
+                if (accepter) {
+                    if (d.type === "Emprunt" && d.taux > 0) {
+                        const montantCapital = d.montant;
+                        const montantTotalARembourser = Math.round(montantCapital * (1 + d.taux / 100));
+                        
+                        const joueurDebiteur = window.localJoueurs[d.emetteurId];
+                        if (joueurDebiteur) {
+                            const soldeActuel = joueurDebiteur.solde || 0;
+                            joueursRef.child(d.emetteurId).update({
+                                ancienSolde: soldeActuel,
+                                solde: soldeActuel + montantCapital
+                            });
+                        }
+
+                        histoRef.push({ 
+                            texte: '✅ Prêt accepté : ' + d.emetteurNom + ' a reçu ' + montantCapital + ' € de ' + d.destNom + ' (Taux ' + d.taux + '% ➔ Total à rembourser : ' + montantTotalARembourser + ' €)', 
+                            date: new Date().toLocaleTimeString('fr-FR') 
+                        });
+                    } else {
+                        histoRef.push({ 
+                            texte: '✅ Demande de ' + d.emetteurNom + ' validée (' + d.montant + ' €)', 
+                            date: new Date().toLocaleTimeString('fr-FR') 
+                        });
+                    }
+                } else {
+                    histoRef.push({ texte: '❌ Demande de ' + d.emetteurNom + ' refusée', date: new Date().toLocaleTimeString('fr-FR') });
+                }
+
+                demandesRef.child(id).remove();
+                enregistrerActivite();
             });
         }
 
-        joueursRef.child(joueurId).update({
-            ancienSolde: soldeActuel,
-            solde: nouveauSolde
+        let rawHistoData = {};
+        histoRef.on('value', (snapshot) => {
+            rawHistoData = snapshot.val() || {};
+            actualiserHistoriqueUI();
         });
 
-        incrementerCompteurJoueur(joueurId);
+        function actualiserHistoriqueUI() {
+            const conteneur = document.getElementById('historique-liste');
+            conteneur.innerHTML = '';
+            const keys = Object.keys(rawHistoData).reverse();
 
-        if (montantPretAutomatique > 0) {
-            messageSuccesAlert += `\n\n⚠️ Fonds insuffisants ! La Banque t'a prêté ${montantPretAutomatique} € pour couvrir le découvert (Taux 50%).`;
+            if (keys.length === 0) {
+                conteneur.innerHTML = '<li>Aucun historique enregistré.</li>';
+                return;
+            }
+
+            keys.forEach(k => {
+                const h = rawHistoData[k];
+                const li = document.createElement('li');
+                li.innerHTML = '<span>' + h.texte + ' <small style="color: #64748b; margin-left:8px;">' + h.date + '</small></span>' +
+                    (window.isAdmin ? '<button class="btn-danger-sm" onclick="supprimerLigneHisto(\'' + k + '\')">🗑️</button>' : '');
+                conteneur.appendChild(li);
+            });
         }
 
-        alert(messageSuccesAlert);
+        function supprimerLigneHisto(id) {
+            if (confirm("Supprimer cette ligne d'historique ?")) histoRef.child(id).remove();
+        }
 
-        histoRef.push({
-            texte: motifHisto,
-            date: new Date().toLocaleTimeString('fr-FR')
+        chronoRef.on('value', (snapshot) => {
+            const chrono = snapshot.val();
+            const banner = document.getElementById('chrono-banner');
+
+            if (!chrono || !chrono.actif) {
+                banner.style.display = 'none';
+                if (chronoInterval) clearInterval(chronoInterval);
+                return;
+            }
+
+            banner.style.display = 'block';
+            document.getElementById('chrono-description').textContent = '⏱️ ' + chrono.description;
+
+            if (chronoInterval) clearInterval(chronoInterval);
+
+            chronoInterval = setInterval(() => {
+                const diff = chrono.fin - Date.now();
+                if (diff <= 0) {
+                    clearInterval(chronoInterval);
+                    banner.style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('t-jours').textContent = Math.floor(diff / (1000 * 60 * 60 * 24));
+                document.getElementById('t-heures').textContent = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+                document.getElementById('t-minutes').textContent = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
+                document.getElementById('t-secondes').textContent = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
+            }, 1000);
         });
 
-        document.getElementById('card-bourse').style.display = 'none';
+        function lancerChrono() {
+            const desc = document.getElementById('chrono-desc').value.trim() || "Défi en cours";
+            const dateVal = document.getElementById('chrono-date').value;
+            if (!dateVal) return alert("Sélectionnez une date de fin.");
+
+            const fin = new Date(dateVal).getTime();
+            chronoRef.set({ actif: true, description: desc, fin: fin });
+        }
+
+        function arreterChrono() { chronoRef.set({ actif: false }); }
+
+        // ==========================================
+        // MOTEUR BOURSE FLASH & PRÊT AUTOMATIQUE
+        // ==========================================
         programmerProchaineOpportunite();
-    }
 
-    function acheterActionFlash() {
-        const joueurId = document.getElementById('bourse-joueur-id').value;
-        const coutAction = parseInt(document.getElementById('bourse-cout-action').value);
+        function programmerProchaineOpportunite() {
+            const delaiMin = 1 * 60 * 1000;
+            const delaiMax = 5 * 60 * 1000;
+            const delaiAleatoire = Math.floor(Math.random() * (delaiMax - delaiMin + 1)) + delaiMin;
 
-        if (!joueurId || !window.localJoueurs[joueurId]) return alert("Aucun joueur désigné.");
-        if (!verifierPin(joueurId)) return alert("Code PIN incorrect !");
-
-        const joueur = window.localJoueurs[joueurId];
-
-        const variationPourcentage = (Math.random() * 2) - 1;
-        const variationArrondie = Math.round(variationPourcentage * 100);
-        const profitOuPerte = Math.round(coutAction * variationPourcentage);
-
-        let messageHisto = '';
-        let messageAlert = '';
-
-        if (profitOuPerte >= 0) {
-            messageHisto = `📈 BOURSE (${joueur.nom}) : Action de ${coutAction} € -> Gain de +${variationArrondie}% (+${profitOuPerte} €)`;
-            messageAlert = `📈 SUCCÈS ! Action à ${coutAction} €. Variation de +${variationArrondie}%. Tu gagnes +${profitOuPerte} € !`;
-        } else {
-            messageHisto = `📉 BOURSE (${joueur.nom}) : Action de ${coutAction} € -> Perte de ${variationArrondie}% (${profitOuPerte} €)`;
-            messageAlert = `📉 PERTE ! Action à ${coutAction} €. Variation de ${variationArrondie}%. Tu perds ${Math.abs(profitOuPerte)} €.`;
+            setTimeout(() => {
+                afficherOpportuniteBourse();
+            }, delaiAleatoire);
         }
 
-        financerImpactEtMettreAJour(joueurId, profitOuPerte, messageHisto, messageAlert);
-    }
+        function ObtenirDateAujourdhui() {
+            const d = new Date();
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
 
-    function refuserActionFlash() {
-        const joueurId = document.getElementById('bourse-joueur-id').value;
+        function afficherOpportuniteBourse() {
+            const joueurKeys = Object.keys(window.localJoueurs || {});
+            if (joueurKeys.length === 0) {
+                programmerProchaineOpportunite();
+                return;
+            }
 
-        if (!joueurId || !window.localJoueurs[joueurId]) return alert("Aucun joueur désigné.");
-        if (!verifierPin(joueurId)) return alert("Code PIN incorrect !");
+            const dateAujourdhui = ObtenirDateAujourdhui();
 
-        const joueur = window.localJoueurs[joueurId];
+            const joueursEligibles = joueurKeys.filter(id => {
+                const j = window.localJoueurs[id];
+                const nbAujourdhui = (j.statBourse && j.statBourse.date === dateAujourdhui) ? j.statBourse.compteur : 0;
+                return nbAujourdhui < MAX_OPPORTUNITES_BOURSE_PAR_JOUR;
+            });
 
-        const messageHisto = `🚫 BOURSE (${joueur.nom}) : Opportunité refusée (-${MONTANT_PENALITE} € de pénalité)`;
-        const messageAlert = `🚫 Opportunité refusée. Une pénalité de ${MONTANT_PENALITE} € a été prélevée sur ton compte.`;
+            if (joueursEligibles.length === 0) {
+                programmerProchaineOpportunite();
+                return;
+            }
 
-        financerImpactEtMettreAJour(joueurId, -MONTANT_PENALITE, messageHisto, messageAlert);
-    }
-</script>
+            const indexRandom = Math.floor(Math.random() * joueursEligibles.length);
+            const joueurChoisiId = joueursEligibles[indexRandom];
+            const joueurChoisiNom = window.localJoueurs[joueurChoisiId].nom;
 
+            let soldeMax = 50;
+            joueurKeys.forEach(id => {
+                const s = window.localJoueurs[id].solde || 0;
+                if (s > soldeMax) soldeMax = s;
+            });
+
+            const coutAction = Math.floor(Math.random() * (soldeMax - 50 + 1)) + 50;
+
+            document.getElementById('bourse-joueur-id').value = joueurChoisiId;
+            document.getElementById('bourse-joueur-nom').textContent = joueurChoisiNom;
+            document.getElementById('bourse-cout-action').value = coutAction;
+            document.getElementById('bourse-montant-impose').textContent = coutAction + ' €';
+            document.getElementById('card-bourse').style.display = 'block';
+        }
+
+        function incrementerCompteurBourseJoueur(joueurId) {
+            const dateAujourdhui = ObtenirDateAujourdhui();
+            const joueur = window.localJoueurs[joueurId];
+            let compteurActuel = 0;
+
+            if (joueur.statBourse && joueur.statBourse.date === dateAujourdhui) {
+                compteurActuel = joueur.statBourse.compteur || 0;
+            }
+
+            joueursRef.child(joueurId).child('statBourse').set({
+                date: dateAujourdhui,
+                compteur: compteurActuel + 1
+            });
+        }
+
+        function financerImpactBourse(joueurId, montantVariation, motifHisto, messageSuccesAlert) {
+            const joueur = window.localJoueurs[joueurId];
+            const soldeActuel = joueur.solde || 0;
+            const soldeTheorique = soldeActuel + montantVariation;
+
+            let nouveauSolde = soldeTheorique;
+            let montantPretAutomatique = 0;
+
+            if (soldeTheorique < 0) {
+                montantPretAutomatique = Math.abs(soldeTheorique);
+                nouveauSolde = 0;
+
+                const totalARembourser = Math.round(montantPretAutomatique * 1.50);
+
+                demandesRef.push({
+                    emetteurId: joueurId,
+                    emetteurNom: joueur.nom,
+                    destId: "BANQUE",
+                    destNom: "la Banque",
+                    type: "Emprunt Automatique (Bourse)",
+                    montant: montantPretAutomatique,
+                    taux: 50,
+                    status: 'valide'
+                });
+
+                histoRef.push({
+                    texte: '🏦 PRÊT AUTOMATIQUE : La Banque prête ' + montantPretAutomatique + ' € à ' + joueur.nom + ' (Couverture Bourse/Pénalité). Total à rembourser : ' + totalARembourser + ' €',
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
+            }
+
+            joueursRef.child(joueurId).update({
+                ancienSolde: soldeActuel,
+                solde: nouveauSolde
+            });
+
+            incrementerCompteurBourseJoueur(joueurId);
+
+            if (montantPretAutomatique > 0) {
+                messageSuccesAlert += `\n\n⚠️ Fonds insuffisants ! La Banque t'a prêté ${montantPretAutomatique} € pour couvrir le découvert (Taux 50%).`;
+            }
+
+            alert(messageSuccesAlert);
+
+            histoRef.push({
+                texte: motifHisto,
+                date: new Date().toLocaleTimeString('fr-FR')
+            });
+
+            document.getElementById('card-bourse').style.display = 'none';
+            programmerProchaineOpportunite();
+        }
+
+        function acheterActionFlash() {
+            const joueurId = document.getElementById('bourse-joueur-id').value;
+            const coutAction = parseInt(document.getElementById('bourse-cout-action').value);
+
+            if (!joueurId || !window.localJoueurs[joueurId]) return alert("Aucun joueur désigné.");
+            if (!verifierPin(joueurId)) return alert("Code PIN incorrect !");
+
+            const joueur = window.localJoueurs[joueurId];
+
+            const variationPourcentage = (Math.random() * 2) - 1;
+            const variationArrondie = Math.round(variationPourcentage * 100);
+            const profitOuPerte = Math.round(coutAction * variationPourcentage);
+
+            let messageHisto = '';
+            let messageAlert = '';
+
+            if (profitOuPerte >= 0) {
+                messageHisto = `📈 BOURSE (${joueur.nom}) : Action de ${coutAction} € ➔ Gain de +${variationArrondie}% (+${profitOuPerte} €)`;
+                messageAlert = `📈 SUCCÈS ! Action à ${coutAction} €. Variation de +${variationArrondie}%. Tu gagnes +${profitOuPerte} € !`;
+            } else {
+                messageHisto = `📉 BOURSE (${joueur.nom}) : Action de ${coutAction} € ➔ Perte de ${variationArrondie}% (${profitOuPerte} €)`;
+                messageAlert = `📉 PERTE ! Action à ${coutAction} €. Variation de ${variationArrondie}%. Tu perds ${Math.abs(profitOuPerte)} €.`;
+            }
+
+            financerImpactBourse(joueurId, profitOuPerte, messageHisto, messageAlert);
+        }
+
+        function refuserActionFlash() {
+            const joueurId = document.getElementById('bourse-joueur-id').value;
+
+            if (!joueurId || !window.localJoueurs[joueurId]) return alert("Aucun joueur désigné.");
+            if (!verifierPin(joueurId)) return alert("Code PIN incorrect !");
+
+            const joueur = window.localJoueurs[joueurId];
+
+            const messageHisto = `🚫 BOURSE (${joueur.nom}) : Opportunité refusée (-${MONTANT_PENALITE_BOURSE} € de pénalité)`;
+            const messageAlert = `🚫 Opportunité refusée. Une pénalité de ${MONTANT_PENALITE_BOURSE} € a été prélevée sur ton compte.`;
+
+            financerImpactBourse(joueurId, -MONTANT_PENALITE_BOURSE, messageHisto, messageAlert);
+        }
+
+        // ==========================================
+        // SAUVEGARDE ET RESTAURATION BDD
+        // ==========================================
+
+        function sauvegarderBDD() {
+            if (!window.isAdmin) return alert("Action réservée à l'administrateur.");
+
+            db.ref().once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (!data) return alert("Aucune donnée à sauvegarder.");
+
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+                const dateStr = new Date().toISOString().slice(0, 10);
+                const fileName = 'sauvegarde_banque_' + dateStr + '.json';
+
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", fileName);
+                document.body.appendChild(downloadAnchor);
+                
+                downloadAnchor.click();
+                downloadAnchor.remove();
+
+                histoRef.push({
+                    texte: '💾 Sauvegarde complète de la BDD téléchargée par l\'Admin',
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
+
+                alert("Sauvegarde téléchargée avec succès : " + fileName);
+            }).catch(error => {
+                alert("Erreur lors de la sauvegarde : " + error.message);
+            });
+        }
+
+        function restaurerBDD(event) {
+            if (!window.isAdmin) return alert("Action réservée à l'administrateur.");
+
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const confirmation = confirm("⚠️ ATTENTION : Tu vas écraser l'intégralité des données actuelles avec ce fichier. Souhaites-tu continuer ?");
+            if (!confirmation) {
+                event.target.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const dataToRestore = JSON.parse(e.target.result);
+
+                    db.ref().set(dataToRestore)
+                        .then(() => {
+                            alert("✅ Base de données restaurée avec succès ! La page va être rechargée.");
+                            location.reload();
+                        })
+                        .catch(error => alert("Erreur Firebase lors de la restauration : " + error.message));
+
+                } catch (err) {
+                    alert("❌ Fichier invalide. Assure-toi qu'il s'agit bien d'un fichier JSON valide.");
+                }
+            };
+
+            reader.readAsText(file);
+        }
+    </script>
 </body>
 </html>
