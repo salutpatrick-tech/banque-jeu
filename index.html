@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banque du Jeu - Application Complète</title>
+    <title>Banque Jeu - Complet & Bourse</title>
     
-    <!-- SDKs Firebase (Compat) -->
+    <!-- Scripts Firebase (Compat) -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
@@ -17,17 +17,17 @@
             --card-bg: #ffffff;
             --text-color: #0f172a;
             --danger: #ef4444;
+            --danger-hover: #dc2626;
             --warning: #f59e0b;
             --success: #10b981;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             margin: 0;
-            padding: 16px;
-            padding-bottom: 80px;
+            padding: 20px;
             display: flex;
             justify-content: center;
         }
@@ -40,11 +40,47 @@
             gap: 16px;
         }
 
+        /* NAVIGATION PAR ONGLETS */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 10px;
+            background: #e2e8f0;
+            color: var(--text-color);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            white-space: nowrap;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
         .card {
             background-color: var(--card-bg);
             border-radius: 12px;
             padding: 20px;
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
         }
 
         h1, h2, h3 { margin-top: 0; }
@@ -64,7 +100,6 @@
             border: 1px solid #cbd5e1;
             box-sizing: border-box;
             font-size: 1rem;
-            margin-bottom: 8px;
         }
 
         button {
@@ -73,17 +108,18 @@
             border: none;
             cursor: pointer;
             font-weight: 600;
+            margin-top: 10px;
+            transition: background-color 0.2s;
         }
 
         button:hover { background-color: var(--primary-hover); }
-
         .btn-danger { background-color: var(--danger); }
-        .btn-warning { background-color: var(--warning); color: #000; }
+        .btn-danger:hover { background-color: var(--danger-hover); }
 
         .joueur-item {
             display: flex;
             justify-content: space-between;
-            padding: 10px 0;
+            padding: 8px 0;
             border-bottom: 1px solid #e2e8f0;
         }
 
@@ -93,89 +129,64 @@
             padding: 6px 0;
             border-bottom: 1px dashed #e2e8f0;
         }
-
-        /* SYSTÈME D'ONGLETS ET NAVIGATION BASSE */
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-
-        .nav-bar {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            display: flex;
-            justify-content: space-around;
-            padding: 10px 0;
-            border-top: 1px solid #cbd5e1;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-        }
-
-        .nav-btn {
-            background: none;
-            border: none;
-            color: #64748b;
-            font-size: 0.75rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: auto;
-            margin: 0;
-            padding: 4px;
-        }
-
-        .nav-btn.active {
-            color: var(--primary);
-            font-weight: bold;
-        }
-
-        .nav-btn span { font-size: 1.2rem; }
     </style>
 </head>
 <body>
 
 <div class="container">
 
-    <!-- BOURSE FLASH ALERTE (TOUJOURS EN HAUT SI ACTIVE) -->
+    <!-- ONGLETS DE NAVIGATION -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="changerOnglet('tab-solde')">📊 Comptes</button>
+        <button class="tab-btn" onclick="changerOnglet('tab-virement')">💸 Virement</button>
+        <button class="tab-btn" onclick="changerOnglet('tab-pret')">🤝 Emprunt</button>
+        <button class="tab-btn" onclick="changerOnglet('tab-admin')">⚙️ Admin</button>
+    </div>
+
+    <!-- CARTE BOURSE FLASH NOMINATIVE (TOUJOURS VISIBLE SI ACTIVE) -->
     <div class="card" id="card-bourse" style="display: none; border: 2px solid #f59e0b; background: #fffbeb;">
-        <h2 style="color: #b45309;">⚡ Opportunité Boursière !</h2>
-        <p style="font-size: 0.9rem;">
-            Réservée exclusivement à : <strong id="bourse-joueur-nom" style="color: #d97706; font-size: 1.1rem;">---</strong>
+        <h2 style="color: #b45309;">⚡ Opportunité Boursière Nominative !</h2>
+        <p style="font-size: 0.9rem; margin-bottom: 8px;">
+            Réservée exclusivement à : <strong id="bourse-joueur-nom" style="font-size: 1.1rem; color: #d97706;">---</strong>
         </p>
-        <p style="font-size: 1rem;">
-            Prix de l'action imposé : <strong id="bourse-montant-impose" style="color: #2563eb;">0 €</strong>
+        <p style="font-size: 1rem; margin-bottom: 8px; color: #1e293b;">
+            Prix de l'action imposé : <strong id="bourse-montant-impose" style="font-size: 1.2rem; color: #2563eb;">0 €</strong>
         </p>
-        <p style="font-size: 0.8rem; color: #64748b;">
-            Variation : <strong>-100% à +100%</strong>.<br>
-            <i>Prêt automatique à 50% d'intérêt en cas de découvert.</i>
+        <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 12px;">
+            Risque : <strong>-100% à +100%</strong> (Résolution et revente immédiates).<br>
+            <i>En cas de perte ou pénalité supérieure au solde, un prêt automatique de la Banque comblera le manque.</i>
         </p>
 
         <input type="hidden" id="bourse-joueur-id">
         <input type="hidden" id="bourse-cout-action">
 
-        <button onclick="acheterActionFlash()" style="background-color: #d97706; color: white;">🎲 Acheter l'action</button>
-        <button onclick="refuserActionFlash()" class="btn-danger" id="btn-refus-texte">🚫 Refuser (-20 €)</button>
+        <button onclick="acheterActionFlash()" style="background-color: #d97706; color: white; margin-top: 12px;">
+            🎲 Acheter l'action maintenant !
+        </button>
+        <button onclick="refuserActionFlash()" class="btn-danger" style="margin-top: 8px;" id="btn-refus-texte">
+            🚫 Refuser l'opportunité (Pénalité de 20 €)
+        </button>
     </div>
 
-    <!-- 1. ONGLET DASHBOARD -->
-    <div id="tab-dashboard" class="tab-content active">
+    <!-- ONGLET 1 : SOLDES ET HISTORIQUE -->
+    <div id="tab-solde" class="tab-content active">
         <div class="card">
             <h1>🏦 Banque du Jeu</h1>
-            <div id="liste-joueurs"><p>Chargement des solde...</p></div>
+            <div id="liste-joueurs"><p>Chargement des joueurs...</p></div>
         </div>
 
         <div class="card">
             <h3>📜 Historique des activités</h3>
-            <div id="historique-liste" style="max-height: 200px; overflow-y: auto;">
+            <div id="historique-liste" style="max-height: 250px; overflow-y: auto;">
                 <p style="font-size: 0.85rem; color: #94a3b8;">Aucune activité récente.</p>
             </div>
         </div>
     </div>
 
-    <!-- 2. ONGLET VIREMENT & DEMANDES -->
+    <!-- ONGLET 2 : TRANSACTIONS & VIREMENTS -->
     <div id="tab-virement" class="tab-content">
         <div class="card">
-            <h2>💸 Effectuer un Virement</h2>
+            <h2>💸 Effectuer une Transaction</h2>
             <label>Émetteur :</label>
             <select id="virement-emetteur"></select>
 
@@ -183,75 +194,76 @@
             <select id="virement-destinataire"></select>
 
             <label>Montant (€) :</label>
-            <input type="number" id="virement-montant" min="1" placeholder="Ex: 10">
+            <input type="number" id="virement-montant" min="1" placeholder="Ex: 50">
 
-            <button onclick="effectuerVirement()">Valider le Virement</button>
+            <button onclick="effectuerVirement()">Valider le virement</button>
         </div>
     </div>
 
-    <!-- 3. ONGLET JOKERS -->
-    <div id="tab-jokers" class="tab-content">
+    <!-- ONGLET 3 : DEMANDE D'EMPRUNT -->
+    <div id="tab-pret" class="tab-content">
         <div class="card">
-            <h2>🃏 Lancer un Défi Joker</h2>
-            <p style="font-size: 0.85rem; color: #64748b;">Le Joker applique une pénalité au joueur qui refuse votre défi oral (50 € pour 1 Joker, 100 € pour 2 Jokers).</p>
-            
-            <label>Joueur qui lance le Joker :</label>
-            <select id="joker-lanceur"></select>
+            <h2>🤝 Demander un Prêt (Banque ou Joueur)</h2>
+            <label>Emprunteur :</label>
+            <select id="pret-emprunteur"></select>
 
-            <label>Joueur ciblé :</label>
-            <select id="joker-cible"></select>
+            <label>Prêteur :</label>
+            <select id="pret-preteur"></select>
 
-            <label>Nombre de Jokers à utiliser :</label>
-            <select id="joker-quantite">
-                <option value="1">1 Joker (Pénalité 50 €)</option>
-                <option value="2">2 Jokers (Pénalité 100 €)</option>
-            </select>
+            <label>Montant demandé (€) :</label>
+            <input type="number" id="pret-montant" min="1" placeholder="Ex: 100">
 
-            <button onclick="jouerJoker()" class="btn-warning">🃏 Lancer le Défi</button>
+            <label>Taux d'intérêt (%) :</label>
+            <input type="number" id="pret-taux" value="10">
+
+            <button onclick="demanderPret()">Envoyer la demande d'emprunt</button>
         </div>
     </div>
 
-    <!-- 4. ONGLET ADMINISTRATION -->
+    <!-- ONGLET 4 : ADMINISTRATION -->
     <div id="tab-admin" class="tab-content">
         <div class="card">
             <h2>⚙️ Administration</h2>
-            <label>Créer un nouveau joueur :</label>
+            
+            <h3>Ajouter un joueur</h3>
             <input type="text" id="admin-nom-joueur" placeholder="Nom du joueur">
-            <input type="number" id="admin-solde-initial" placeholder="Solde initial (€)" value="100">
-            <input type="password" id="admin-pin-joueur" placeholder="Code PIN à 4 chiffres">
-            <button onclick="ajouterJoueur()">+ Ajouter Joueur</button>
-            <hr style="margin: 20px 0; border: none; border-top: 1px solid #e2e8f0;">
-            <button onclick="reinitialiserPartie()" class="btn-danger">⚠️ Réinitialiser Toute la Partie</button>
+            <input type="number" id="admin-pin-joueur" placeholder="Code PIN (4 chiffres)" style="margin-top:6px;">
+            <button onclick="ajouterJoueur()">Créer le joueur</button>
+
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #cbd5e1;">
+
+            <h3>Ajustement manuel de solde</h3>
+            <select id="admin-joueur-ajustement"></select>
+            <input type="number" id="admin-montant-ajustement" placeholder="Montant (ex: 50 ou -50)" style="margin-top:6px;">
+            <button onclick="ajusterSoldeAdmin()">Appliquer la modification</button>
+
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #cbd5e1;">
+
+            <button onclick="reinitialiserPartie()" class="btn-danger">⚠️ Réinitialiser la partie</button>
         </div>
     </div>
 
 </div>
 
-<!-- BARRE DE NAVIGATION BASSE -->
-<div class="nav-bar">
-    <button class="nav-btn active" onclick="changerOnglet('tab-dashboard', this)"><span>📊</span>Solde</button>
-    <button class="nav-btn" onclick="changerOnglet('tab-virement', this)"><span>💸</span>Virement</button>
-    <button class="nav-btn" onclick="changerOnglet('tab-jokers', this)"><span>🃏</span>Jokers</button>
-    <button class="nav-btn" onclick="changerOnglet('tab-admin', this)"><span>⚙️</span>Admin</button>
-</div>
-
 <script>
-    // 1. FIREBASE CONFIGURATION
+    // ==========================================
+    // 1. CONFIGURATION FIREBASE
+    // ==========================================
     const firebaseConfig = {
-        apiKey: "AIzaSyBzJugWBBzfzpgeLCAGNAjycBMZv64WHbc",
-        authDomain: "banque-jeu.firebaseapp.com",
-        databaseURL: "https://banque-jeu-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "banque-jeu",
-        storageBucket: "banque-jeu.firebasestorage.app",
-        messagingSenderId: "333582703295",
-        appId: "1:333582703295:web:aedbdfe4fe3ecd1ed8c40a"
+        apiKey: "TON_API_KEY",
+        authDomain: "TON_PROJECT.firebaseapp.com",
+        databaseURL: "https://TON_PROJECT-default-rtdb.firebaseio.com",
+        projectId: "TON_PROJECT",
+        storageBucket: "TON_PROJECT.appspot.com",
+        messagingSenderId: "123456789",
+        appId: "1:123456789:web:abcdef"
     };
 
     const MONTANT_PENALITE = 20;
     const MAX_OPPORTUNITES_PAR_JOUR = 2;
 
     firebase.initializeApp(firebaseConfig);
-    const database = firebase.app().database("https://banque-jeu-default-rtdb.europe-west1.firebasedatabase.app");
+    const database = firebase.database();
 
     const joueursRef = database.ref('joueurs');
     const histoRef = database.ref('historique');
@@ -259,47 +271,58 @@
 
     window.localJoueurs = {};
 
-    // GESTION DES ONGLETS
-    function changerOnglet(tabId, btn) {
-        document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('btn-refus-texte').textContent = `🚫 Refuser l'opportunité (Pénalité de -${MONTANT_PENALITE} €)`;
+
+    // ==========================================
+    // 2. GESTION DES ONGLETS
+    // ==========================================
+    function changerOnglet(tabId) {
+        document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
         
         document.getElementById(tabId).classList.add('active');
-        btn.classList.add('active');
+        event.currentTarget.classList.add('active');
     }
 
-    // SYNCHRONISATION EN TEMPS RÉEL
+    // ==========================================
+    // 3. SYNCHRONISATION EN TEMPS RÉEL (FIREBASE)
+    // ==========================================
     joueursRef.on('value', (snapshot) => {
         const data = snapshot.val() || {};
         window.localJoueurs = data;
         
+        // Mettre à jour l'affichage de la liste
         const container = document.getElementById('liste-joueurs');
         container.innerHTML = '';
 
-        const selects = ['virement-emetteur', 'virement-destinataire', 'joker-lanceur', 'joker-cible'];
-        selects.forEach(id => {
-            const el = document.getElementById(id);
-            if(el) el.innerHTML = '';
-        });
+        // Mettre à jour les listes déroulantes (<select>)
+        const selects = [
+            document.getElementById('virement-emetteur'),
+            document.getElementById('virement-destinataire'),
+            document.getElementById('pret-emprunteur'),
+            document.getElementById('pret-preteur'),
+            document.getElementById('admin-joueur-ajustement')
+        ];
+
+        selects.forEach(s => { if(s) s.innerHTML = ''; });
+
+        // Option Banque pour les virements/prêts
+        const addOption = (s, val, txt) => { if(s) s.innerHTML += `<option value="${val}">${txt}</option>`; };
+        addOption(document.getElementById('virement-destinataire'), 'BANQUE', '🏦 La Banque');
+        addOption(document.getElementById('virement-emetteur'), 'BANQUE', '🏦 La Banque');
+        addOption(document.getElementById('pret-preteur'), 'BANQUE', '🏦 La Banque');
 
         Object.keys(data).forEach(id => {
             const j = data[id];
-            // Remplir tableau bord
+            
+            // Affichage Dashboard
             const div = document.createElement('div');
             div.className = 'joueur-item';
-            div.innerHTML = `<span><strong>${j.nom}</strong> ${j.jokers ? '🃏 x'+j.jokers : ''}</span> <span>${j.solde || 0} €</span>`;
+            div.innerHTML = `<span><strong>${j.nom}</strong></span> <span>${j.solde || 0} €</span>`;
             container.appendChild(div);
 
-            // Remplir sélecteurs
-            selects.forEach(sId => {
-                const el = document.getElementById(sId);
-                if(el) {
-                    const opt = document.createElement('option');
-                    opt.value = id;
-                    opt.textContent = `${j.nom} (${j.solde || 0} €)`;
-                    el.appendChild(opt);
-                }
-            });
+            // Remplissage Selects
+            selects.forEach(s => addOption(s, id, j.nom));
         });
     });
 
@@ -317,33 +340,51 @@
         });
     });
 
+    // ==========================================
+    // 4. VÉRIFICATION PIN
+    // ==========================================
     function verifierPin(joueurId) {
+        if (joueurId === 'BANQUE') return true;
         const joueur = window.localJoueurs[joueurId];
         if (!joueur || !joueur.pin) return true;
+
         const saisie = prompt(`Saisis le code PIN pour ${joueur.nom} :`);
-        return saisie === String(joueur.pin);
+        if (saisie === String(joueur.pin)) {
+            return true;
+        } else {
+            alert("Code PIN incorrect !");
+            return false;
+        }
     }
 
-    // FONCTIONNALITÉ VIREMENT
+    // ==========================================
+    // 5. FONCTIONS VIREMENT & PRÊT CLASSIQUE
+    // ==========================================
     function effectuerVirement() {
         const emetteurId = document.getElementById('virement-emetteur').value;
         const destId = document.getElementById('virement-destinataire').value;
         const montant = parseInt(document.getElementById('virement-montant').value);
 
-        if (emetteurId === destId) return alert("Saisis deux joueurs différents.");
-        if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
-        if (!verifierPin(emetteurId)) return alert("Code PIN incorrect.");
+        if (!montant || montant <= 0) return alert("Montant invalide.");
+        if (emetteurId === destId) return alert("L'émetteur et le destinataire doivent être différents.");
+        if (!verifierPin(emetteurId)) return;
 
-        const emetteur = window.localJoueurs[emetteurId];
-        if ((emetteur.solde || 0) < montant) return alert("Solde insuffisant.");
+        if (emetteurId !== 'BANQUE') {
+            const soldeEmetteur = window.localJoueurs[emetteurId].solde || 0;
+            if (soldeEmetteur < montant) return alert("Solde insuffisant.");
+            joueursRef.child(emetteurId).update({ solde: soldeEmetteur - montant });
+        }
 
-        const dest = window.localJoueurs[destId];
+        if (destId !== 'BANQUE') {
+            const soldeDest = window.localJoueurs[destId].solde || 0;
+            joueursRef.child(destId).update({ solde: soldeDest + montant });
+        }
 
-        joueursRef.child(emetteurId).update({ solde: emetteur.solde - montant });
-        joueursRef.child(destId).update({ solde: (dest.solde || 0) + montant });
+        const nomEmetteur = emetteurId === 'BANQUE' ? 'La Banque' : window.localJoueurs[emetteurId].nom;
+        const nomDest = destId === 'BANQUE' ? 'La Banque' : window.localJoueurs[destId].nom;
 
         histoRef.push({
-            texte: `💸 VIREMENT : ${emetteur.nom} a envoyé ${montant} € à ${dest.nom}`,
+            texte: `💸 VIREMENT : ${nomEmetteur} a envoyé ${montant} € à ${nomDest}`,
             date: new Date().toLocaleTimeString('fr-FR')
         });
 
@@ -351,68 +392,92 @@
         document.getElementById('virement-montant').value = '';
     }
 
-    // FONCTIONNALITÉ JOKER
-    function jouerJoker() {
-        const lanceurId = document.getElementById('joker-lanceur').value;
-        const cibleId = document.getElementById('joker-cible').value;
-        const nbJokers = parseInt(document.getElementById('joker-quantite').value);
+    function demanderPret() {
+        const empId = document.getElementById('pret-emprunteur').value;
+        const preteurId = document.getElementById('pret-preteur').value;
+        const montant = parseInt(document.getElementById('pret-montant').value);
+        const taux = parseInt(document.getElementById('pret-taux').value) || 0;
 
-        if (lanceurId === cibleId) return alert("Cible un autre joueur.");
-        if (!verifierPin(lanceurId)) return alert("Code PIN incorrect.");
+        if (!montant || montant <= 0) return alert("Montant invalide.");
+        if (empId === preteurId) return alert("Action impossible.");
+        if (!verifierPin(empId)) return;
 
-        const lanceur = window.localJoueurs[lanceurId];
-        const jokersPossedes = lanceur.jokers || 0;
+        // Validation immédiate pour la banque
+        const soldeEmp = window.localJoueurs[empId].solde || 0;
+        joueursRef.child(empId).update({ solde: soldeEmp + montant });
 
-        if (jokersPossedes < nbJokers) return alert(`Tu n'as pas assez de Jokers (${jokersPossedes} disponible(s)).`);
+        const nomPreteur = preteurId === 'BANQUE' ? 'la Banque' : window.localJoueurs[preteurId].nom;
+        const nomEmp = window.localJoueurs[empId].nom;
 
-        const cible = window.localJoueurs[cibleId];
-        const penalite = nbJokers * 50;
+        histoRef.push({
+            texte: `🤝 EMPRUNT : ${nomEmp} a emprunté ${montant} € auprès de ${nomPreteur} (Taux: ${taux}%)`,
+            date: new Date().toLocaleTimeString('fr-FR')
+        });
 
-        if (confirm(`Le joueur ${cible.nom} accepte-t-il le défi oral de ${lanceur.nom} ?\n\nCliquer sur ANNULER s'il REFUSE (Pénalité de ${penalite} €).`)) {
-            // Défi accepté : Le joker est juste consommé
-            joueursRef.child(lanceurId).update({ jokers: jokersPossedes - nbJokers });
-            histoRef.push({
-                texte: `🃏 JOKER : ${lanceur.nom} a lancé un défi à ${cible.nom} (Accepté !)`,
-                date: new Date().toLocaleTimeString('fr-FR')
-            });
-            alert("Défi accepté ! Aucun transfert d'argent.");
-        } else {
-            // Défi refusé : Pénalité payée au lanceur
-            joueursRef.child(lanceurId).update({ 
-                jokers: jokersPossedes - nbJokers,
-                solde: (lanceur.solde || 0) + penalite 
-            });
+        alert("Emprunt accordé et solde crédité !");
+    }
 
-            const soldeCible = cible.solde || 0;
-            let nouveauSoldeCible = soldeCible - penalite;
+    // ==========================================
+    // 6. ADMINISTRATION
+    // ==========================================
+    function ajouterJoueur() {
+        const nom = document.getElementById('admin-nom-joueur').value.trim();
+        const pin = document.getElementById('admin-pin-joueur').value.trim();
 
-            if (nouveauSoldeCible < 0) {
-                const pret = Math.abs(nouveauSoldeCible);
-                nouveauSoldeCible = 0;
-                demandesRef.push({
-                    emetteurId: cibleId,
-                    emetteurNom: cible.nom,
-                    destId: "BANQUE",
-                    type: "Emprunt Automatique (Joker)",
-                    montant: pret,
-                    taux: 50
-                });
-            }
+        if (!nom) return alert("Nom requis.");
+        
+        joueursRef.push({
+            nom: nom,
+            pin: pin || null,
+            solde: 500 // Solde de départ par défaut
+        });
 
-            joueursRef.child(cibleId).update({ solde: nouveauSoldeCible });
+        document.getElementById('admin-nom-joueur').value = '';
+        document.getElementById('admin-pin-joueur').value = '';
+        alert(`Joueur ${nom} ajouté !`);
+    }
 
-            histoRef.push({
-                texte: `🚫 JOKER REFUSÉ : ${cible.nom} refuse le défi et paie ${penalite} € à ${lanceur.nom}`,
-                date: new Date().toLocaleTimeString('fr-FR')
-            });
-            alert(`Pénalité de ${penalite} € appliquée à ${cible.nom} !`);
+    function ajusterSoldeAdmin() {
+        const jId = document.getElementById('admin-joueur-ajustement').value;
+        const montant = parseInt(document.getElementById('admin-montant-ajustement').value);
+
+        if (!jId || isNaN(montant)) return alert("Saisie invalide.");
+
+        const soldeActuel = window.localJoueurs[jId].solde || 0;
+        joueursRef.child(jId).update({ solde: soldeActuel + montant });
+
+        histoRef.push({
+            texte: `⚙️ ADMIN : Solde de ${window.localJoueurs[jId].nom} ajusté de (${montant > 0 ? '+' : ''}${montant} €)`,
+            date: new Date().toLocaleTimeString('fr-FR')
+        });
+
+        alert("Ajustement appliqué.");
+    }
+
+    function reinitialiserPartie() {
+        if (confirm("⚠️ Voulez-vous vraiment TOUT réinitialiser ?")) {
+            joueursRef.remove();
+            histoRef.remove();
+            demandesRef.remove();
+            alert("Partie réinitialisée.");
         }
     }
 
-    // MOTEUR BOURSE FLASH
+    // ==========================================
+    // 7. MOTEUR BOURSE FLASH & PRÊT AUTOMATIQUE
+    // ==========================================
+    let delaiApparitionTimeout = null;
+
+    programmerProchaineOpportunite();
+
     function programmerProchaineOpportunite() {
-        const delai = Math.floor(Math.random() * (5 - 1 + 1) + 1) * 60 * 1000;
-        setTimeout(afficherOpportuniteBourse, delai);
+        const delaiMin = 1 * 60 * 1000;
+        const delaiMax = 5 * 60 * 1000;
+        const delaiAleatoire = Math.floor(Math.random() * (delaiMax - delaiMin + 1)) + delaiMin;
+
+        delaiApparitionTimeout = setTimeout(() => {
+            afficherOpportuniteBourse();
+        }, delaiAleatoire);
     }
 
     function ObtenirDateAujourdhui() {
@@ -421,103 +486,152 @@
     }
 
     function afficherOpportuniteBourse() {
-        const keys = Object.keys(window.localJoueurs || {});
-        if (keys.length === 0) return programmerProchaineOpportunite();
+        const joueurKeys = Object.keys(window.localJoueurs || {});
+        if (joueurKeys.length === 0) {
+            programmerProchaineOpportunite();
+            return;
+        }
 
         const dateAujourdhui = ObtenirDateAujourdhui();
-        const eligibles = keys.filter(id => {
+
+        const joueursEligibles = joueurKeys.filter(id => {
             const j = window.localJoueurs[id];
-            const nb = (j.statBourse && j.statBourse.date === dateAujourdhui) ? j.statBourse.compteur : 0;
-            return nb < MAX_OPPORTUNITES_PAR_JOUR;
+            const nbAujourdhui = (j.statBourse && j.statBourse.date === dateAujourdhui) ? j.statBourse.compteur : 0;
+            return nbAujourdhui < MAX_OPPORTUNITES_PAR_JOUR;
         });
 
-        if (eligibles.length === 0) return programmerProchaineOpportunite();
+        if (joueursEligibles.length === 0) {
+            programmerProchaineOpportunite();
+            return;
+        }
 
-        const idChoisi = eligibles[Math.floor(Math.random() * eligibles.length)];
+        const indexRandom = Math.floor(Math.random() * joueursEligibles.length);
+        const joueurChoisiId = joueursEligibles[indexRandom];
+        const joueurChoisiNom = window.localJoueurs[joueurChoisiId].nom;
+
         let soldeMax = 50;
-        keys.forEach(id => {
+        joueurKeys.forEach(id => {
             const s = window.localJoueurs[id].solde || 0;
             if (s > soldeMax) soldeMax = s;
         });
 
-        const cout = Math.floor(Math.random() * (soldeMax - 50 + 1)) + 50;
+        const coutAction = Math.floor(Math.random() * (soldeMax - 50 + 1)) + 50;
 
-        document.getElementById('bourse-joueur-id').value = idChoisi;
-        document.getElementById('bourse-joueur-nom').textContent = window.localJoueurs[idChoisi].nom;
-        document.getElementById('bourse-cout-action').value = cout;
-        document.getElementById('bourse-montant-impose').textContent = cout + ' €';
+        document.getElementById('bourse-joueur-id').value = joueurChoisiId;
+        document.getElementById('bourse-joueur-nom').textContent = joueurChoisiNom;
+        document.getElementById('bourse-cout-action').value = coutAction;
+        document.getElementById('bourse-montant-impose').textContent = coutAction + ' €';
         document.getElementById('card-bourse').style.display = 'block';
     }
 
-    function acheterActionFlash() {
-        const id = document.getElementById('bourse-joueur-id').value;
-        const cout = parseInt(document.getElementById('bourse-cout-action').value);
+    function incrementerCompteurJoueur(joueurId) {
+        const dateAujourdhui = ObtenirDateAujourdhui();
+        const joueur = window.localJoueurs[joueurId];
+        let compteurActuel = 0;
 
-        if (!verifierPin(id)) return alert("Code PIN incorrect !");
-
-        const varPct = (Math.random() * 2) - 1;
-        const profit = Math.round(cout * varPct);
-        const j = window.localJoueurs[id];
-
-        const msg = profit >= 0 ? `📈 Gain de +${Math.round(varPct*100)}% (+${profit} €)` : `📉 Perte de ${Math.round(varPct*100)}% (${profit} €)`;
-        financerImpact(id, profit, `BOURSE (${j.nom}) : ${msg}`, msg);
-    }
-
-    function refuserActionFlash() {
-        const id = document.getElementById('bourse-joueur-id').value;
-        if (!verifierPin(id)) return alert("Code PIN incorrect !");
-
-        const j = window.localJoueurs[id];
-        financerImpact(id, -MONTANT_PENALITE, `BOURSE (${j.nom}) : Refus (-20 €)`, "Opportunité refusée (-20 €).");
-    }
-
-    function financerImpact(id, variation, histoTxt, alertTxt) {
-        const j = window.localJoueurs[id];
-        const theorique = (j.solde || 0) + variation;
-        let finalSolde = theorique;
-        let pret = 0;
-
-        if (theorique < 0) {
-            pret = Math.abs(theorique);
-            finalSolde = 0;
-            demandesRef.push({ emetteurId: id, destId: "BANQUE", montant: pret, taux: 50, status: 'valide' });
+        if (joueur.statBourse && joueur.statBourse.date === dateAujourdhui) {
+            compteurActuel = joueur.statBourse.compteur || 0;
         }
 
-        const dateToday = ObtenirDateAujourdhui();
-        const cnt = (j.statBourse && j.statBourse.date === dateToday) ? (j.statBourse.compteur || 0) : 0;
+        joueursRef.child(joueurId).child('statBourse').set({
+            date: dateAujourdhui,
+            compteur: compteurActuel + 1
+        });
+    }
 
-        joueursRef.child(id).update({ solde: finalSolde });
-        joueursRef.child(id).child('statBourse').set({ date: dateToday, compteur: cnt + 1 });
+    function financerImpactEtMettreAJour(joueurId, montantVariation, motifHisto, messageSuccesAlert) {
+        const joueur = window.localJoueurs[joueurId];
+        const soldeActuel = joueur.solde || 0;
+        const soldeTheorique = soldeActuel + montantVariation;
 
-        histoRef.push({ texte: histoTxt, date: new Date().toLocaleTimeString('fr-FR') });
+        let nouveauSolde = soldeTheorique;
+        let montantPretAutomatique = 0;
+
+        if (soldeTheorique < 0) {
+            montantPretAutomatique = Math.abs(soldeTheorique);
+            nouveauSolde = 0;
+
+            const totalARembourser = Math.round(montantPretAutomatique * 1.50);
+
+            demandesRef.push({
+                emetteurId: joueurId,
+                emetteurNom: joueur.nom,
+                destId: "BANQUE",
+                destNom: "la Banque",
+                type: "Emprunt Automatique (Bourse)",
+                montant: montantPretAutomatique,
+                taux: 50,
+                status: 'valide'
+            });
+
+            histoRef.push({
+                texte: '🏦 PRÊT AUTOMATIQUE : La Banque prête ' + montantPretAutomatique + ' € à ' + joueur.nom + ' (Couverture Bourse/Pénalité). Total à rembourser : ' + totalARembourser + ' €',
+                date: new Date().toLocaleTimeString('fr-FR')
+            });
+        }
+
+        joueursRef.child(joueurId).update({
+            ancienSolde: soldeActuel,
+            solde: nouveauSolde
+        });
+
+        incrementerCompteurJoueur(joueurId);
+
+        if (montantPretAutomatique > 0) {
+            messageSuccesAlert += `\n\n⚠️ Fonds insuffisants ! La Banque t'a prêté ${montantPretAutomatique} € pour couvrir le découvert (Taux 50%).`;
+        }
+
+        alert(messageSuccesAlert);
+
+        histoRef.push({
+            texte: motifHisto,
+            date: new Date().toLocaleTimeString('fr-FR')
+        });
+
         document.getElementById('card-bourse').style.display = 'none';
-        alert(alertTxt + (pret > 0 ? `\n\nPrêt automatique de ${pret} € accordé par la Banque (50% taux).` : ''));
         programmerProchaineOpportunite();
     }
 
-    // FONCTIONS ADMIN
-    function ajouterJoueur() {
-        const nom = document.getElementById('admin-nom-joueur').value.trim();
-        const solde = parseInt(document.getElementById('admin-solde-initial').value);
-        const pin = document.getElementById('admin-pin-joueur').value.trim();
+    function acheterActionFlash() {
+        const joueurId = document.getElementById('bourse-joueur-id').value;
+        const coutAction = parseInt(document.getElementById('bourse-cout-action').value);
 
-        if (!nom || isNaN(solde) || !pin) return alert("Remplis tous les champs.");
+        if (!joueurId || !window.localJoueurs[joueurId]) return alert("Aucun joueur désigné.");
+        if (!verifierPin(joueurId)) return alert("Code PIN incorrect !");
 
-        joueursRef.push({ nom: nom, solde: solde, pin: pin, jokers: 1 });
-        alert(`Joueur ${nom} ajouté !`);
-        document.getElementById('admin-nom-joueur').value = '';
-    }
+        const joueur = window.localJoueurs[joueurId];
 
-    function reinitialiserPartie() {
-        if (confirm("⚠️ Veux-tu vraiment TOUT réinitialiser ?")) {
-            joueursRef.remove();
-            histoRef.remove();
-            demandesRef.remove();
-            alert("Partie réinitialisée.");
+        const variationPourcentage = (Math.random() * 2) - 1;
+        const variationArrondie = Math.round(variationPourcentage * 100);
+        const profitOuPerte = Math.round(coutAction * variationPourcentage);
+
+        let messageHisto = '';
+        let messageAlert = '';
+
+        if (profitOuPerte >= 0) {
+            messageHisto = `📈 BOURSE (${joueur.nom}) : Action de ${coutAction} € -> Gain de +${variationArrondie}% (+${profitOuPerte} €)`;
+            messageAlert = `📈 SUCCÈS ! Action à ${coutAction} €. Variation de +${variationArrondie}%. Tu gagnes +${profitOuPerte} € !`;
+        } else {
+            messageHisto = `📉 BOURSE (${joueur.nom}) : Action de ${coutAction} € -> Perte de ${variationArrondie}% (${profitOuPerte} €)`;
+            messageAlert = `📉 PERTE ! Action à ${coutAction} €. Variation de ${variationArrondie}%. Tu perds ${Math.abs(profitOuPerte)} €.`;
         }
+
+        financerImpactEtMettreAJour(joueurId, profitOuPerte, messageHisto, messageAlert);
     }
 
-    programmerProchaineOpportunite();
+    function refuserActionFlash() {
+        const joueurId = document.getElementById('bourse-joueur-id').value;
+
+        if (!joueurId || !window.localJoueurs[joueurId]) return alert("Aucun joueur désigné.");
+        if (!verifierPin(joueurId)) return alert("Code PIN incorrect !");
+
+        const joueur = window.localJoueurs[joueurId];
+
+        const messageHisto = `🚫 BOURSE (${joueur.nom}) : Opportunité refusée (-${MONTANT_PENALITE} € de pénalité)`;
+        const messageAlert = `🚫 Opportunité refusée. Une pénalité de ${MONTANT_PENALITE} € a été prélevée sur ton compte.`;
+
+        financerImpactEtMettreAJour(joueurId, -MONTANT_PENALITE, messageHisto, messageAlert);
+    }
 </script>
 
 </body>
