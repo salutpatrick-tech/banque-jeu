@@ -250,6 +250,39 @@
             color: #c7d2fe;
         }
 
+        /* BANNIÈRE DÉFI PUBLIC */
+        .defi-banner {
+            background: linear-gradient(135deg, #7c3aed, #4c1d95);
+            color: #ffffff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 2px solid #a855f7;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+        }
+
+        /* JOKER VOLANT */
+        .joker-volant-btn {
+            position: fixed;
+            z-index: 3000;
+            background: #8b5cf6;
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            padding: 12px 20px;
+            border-radius: 50px;
+            border: 3px solid #ffffff;
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.8);
+            cursor: pointer;
+            animation: pulse-joker 1.5s infinite alternate;
+            width: auto;
+        }
+
+        @keyframes pulse-joker {
+            0% { transform: scale(1); }
+            100% { transform: scale(1.1); }
+        }
+
         /* MODAL ROUE DE LA FORTUNE */
         .modal-roue {
             display: none;
@@ -330,11 +363,26 @@
 </head>
 <body>
 
+    <!-- BUTTON JOKER VOLANT SURPRISE -->
+    <button id="joker-volant" class="joker-volant-btn" style="display: none;" onclick="attraperJokerVolant()">
+        🃏 UN JOKER APPARAÎT ! CLIQUE ICI !
+    </button>
+
     <div class="container">
         <header>
             <h1>🏦 Banque du Jeu</h1>
             <span id="admin-badge" class="admin-badge">🔒 Mode Joueur</span>
         </header>
+
+        <!-- BANNIÈRE DÉFI EN COURS -->
+        <div id="defi-banner" class="defi-banner" style="display: none;">
+            <h3 style="margin: 0 0 8px 0;">⚔️ DÉFI JOKER LANCÉ !</h3>
+            <p id="defi-details" style="font-size: 0.95rem; margin: 0 0 12px 0;"></p>
+            <div id="defi-actions" class="demande-actions">
+                <button class="btn-success" onclick="repondreDefi(true)">⚔️ Accepter le défi</button>
+                <button class="btn-danger" onclick="repondreDefi(false)">🚫 Refuser (-50 €)</button>
+            </div>
+        </div>
 
         <!-- BANNIÈRE CHRONOMÈTRE -->
         <div id="chrono-banner" class="chrono-banner" style="display: none;">
@@ -567,6 +615,8 @@
         const demandesRef = db.ref('demandes');
         const chronoRef = db.ref('config/chrono');
         const roueRef = db.ref('config/roueQuotidienne');
+        const defiRef = db.ref('config/defiActif');
+        const inactiviteRef = db.ref('config/inactivite');
 
         const MONTANT_PENALITE_BOURSE = 20;
         const MAX_OPPORTUNITES_BOURSE_PAR_JOUR = 2;
@@ -575,8 +625,8 @@
         window.isAdmin = false;
         let chronoInterval = null;
         let localRoueConfig = {};
+        let localDefiActif = null;
 
-        // SEGMENTS ROUE ET PROBABILITÉS
         const segmentsRoue = [
             { label: "🃏 +1 Joker", color: "#8b5cf6", type: "joker", value: 1, weight: 15 },
             { label: "💶 +20 €", color: "#22c55e", type: "argent", value: 20, weight: 30 },
@@ -616,7 +666,6 @@
             actualiserHistoriqueUI();
         }
 
-        // ECOUTE JOUEURS
         joueursRef.on('value', (snapshot) => {
             window.localJoueurs = snapshot.val() || {};
             actualiserAffichageJoueurs();
@@ -666,6 +715,12 @@
         }
 
         function enregistrerActivite() {
+            const now = Date.now();
+            inactiviteRef.set({
+                derniereActivite: now,
+                jokerDisponible: false
+            });
+
             const dateAujourdhui = new Date().toLocaleDateString('fr-FR');
             roueRef.transaction(current => {
                 if (!current || current.date !== dateAujourdhui) {
@@ -675,6 +730,168 @@
                     return current;
                 }
             });
+        }
+
+        // ==========================================
+        // GESTION INACTIVITÉ & JOKER VOLANT SURPRISE
+        // ==========================================
+        inactiviteRef.on('value', snapshot => {
+            const data = snapshot.val() || {};
+            const btnJoker = document.getElementById('joker-volant');
+
+            if (data.jokerDisponible) {
+                if (btnJoker.style.display !== 'block') {
+                    const topPos = Math.floor(Math.random() * 60) + 20;
+                    const leftPos = Math.floor(Math.random() * 60) + 20;
+                    btnJoker.style.top = topPos + '%';
+                    btnJoker.style.left = leftPos + '%';
+                    btnJoker.style.display = 'block';
+                }
+            } else {
+                btnJoker.style.display = 'none';
+            }
+        });
+
+        setInterval(() => {
+            inactiviteRef.once('value', snapshot => {
+                const data = snapshot.val() || {};
+                const derniere = data.derniereActivite || Date.now();
+                const tempsEcoule = Date.now() - derniere;
+                const troisJoursMs = 3 * 24 * 60 * 60 * 1000;
+
+                if (tempsEcoule >= troisJoursMs && !data.jokerDisponible) {
+                    inactiviteRef.update({ jokerDisponible: true });
+                }
+            });
+        }, 60000);
+
+        function attraperJokerVolant() {
+            const joueurKeys = Object.keys(window.localJoueurs);
+            if (joueurKeys.length === 0) return;
+
+            let options = "";
+            joueurKeys.forEach((id, index) => {
+                options += `${index + 1}. ${window.localJoueurs[id].nom}\n`;
+            });
+
+            const choix = prompt("🎉 FÉLICITATIONS ! Tu as attrapé le Joker Volant !\nQui es-tu ? Entrez le numéro de votre nom :\n" + options);
+            const indexChoisi = parseInt(choix) - 1;
+
+            if (isNaN(indexChoisi) || !joueurKeys[indexChoisi]) {
+                return alert("Choix invalide. Le Joker reste disponible !");
+            }
+
+            const jId = joueurKeys[indexChoisi];
+            if (!verifierPin(jId)) return alert("Code PIN incorrect !");
+
+            const joueur = window.localJoueurs[jId];
+            const jokersActuels = joueur.jokers || 0;
+
+            if (jokersActuels >= 2) {
+                attraper3emeJokerObligatoire(jId, joueur.nom, "Joker Volant d'inactivité");
+            } else {
+                joueursRef.child(jId).child('jokers').set(jokersActuels + 1);
+                alert(`🎉 Joker ajouté avec succès ! Tu as maintenant ${jokersActuels + 1} Joker(s).`);
+                histoRef.push({
+                    texte: `🃏 JOKER VOLANT : ${joueur.nom} a attrapé le Joker d'inactivité ! (${jokersActuels + 1}/2 Jokers)`,
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
+            }
+
+            inactiviteRef.set({
+                derniereActivite: Date.now(),
+                jokerDisponible: false
+            });
+        }
+
+        // ==========================================
+        // GESTION DU DÉFI PUBLIC (3E JOKER OBLIGATOIRE)
+        // ==========================================
+        defiRef.on('value', snapshot => {
+            localDefiActif = snapshot.val();
+            const banner = document.getElementById('defi-banner');
+            if (localDefiActif && localDefiActif.actif) {
+                banner.style.display = 'block';
+                document.getElementById('defi-details').innerHTML = 
+                    `<strong>${localDefiActif.attaquantNom}</strong> lance un défi à <strong>${localDefiActif.cibleNom}</strong> !<br>` +
+                    `🎯 <i>« ${localDefiActif.description} »</i>`;
+            } else {
+                banner.style.display = 'none';
+            }
+        });
+
+        function attraper3emeJokerObligatoire(attaquantId, attaquantNom, source) {
+            const ciblesDispos = Object.keys(window.localJoueurs).filter(id => id !== attaquantId);
+            if (ciblesDispos.length === 0) return alert("Pas d'autre joueur à défier.");
+
+            let menuCibles = "Sélectionne le joueur à défier :\n";
+            ciblesDispos.forEach((id, index) => {
+                menuCibles += `${index + 1}. ${window.localJoueurs[id].nom}\n`;
+            });
+
+            const choixCible = prompt(`⚔️ 3ᵉ JOKER OBLIGATOIRE (${source}) !\n\n${menuCibles}`);
+            const idx = parseInt(choixCible) - 1;
+
+            if (isNaN(idx) || !ciblesDispos[idx]) {
+                alert("Choix invalide. Vous devez obligatoirement sélectionner un joueur à défier !");
+                return attraper3emeJokerObligatoire(attaquantId, attaquantNom, source);
+            }
+
+            const cibleId = ciblesDispos[idx];
+            const cibleNom = window.localJoueurs[cibleId].nom;
+
+            const descDefi = prompt(`Saisis la description du défi lancé à ${cibleNom} :`);
+            if (!descDefi || !descDefi.trim()) {
+                alert("La description du défi ne peut pas être vide !");
+                return attraper3emeJokerObligatoire(attaquantId, attaquantNom, source);
+            }
+
+            defiRef.set({
+                actif: true,
+                attaquantId: attaquantId,
+                attaquantNom: attaquantNom,
+                cibleId: cibleId,
+                cibleNom: cibleNom,
+                description: descDefi.trim()
+            });
+
+            histoRef.push({
+                texte: `⚔️ DÉFI PUBLIC : ${attaquantNom} a obtenu son 3ᵉ Joker (${source}) et a défie ${cibleNom} ➔ « ${descDefi.trim()} »`,
+                date: new Date().toLocaleTimeString('fr-FR')
+            });
+        }
+
+        function repondreDefi(accepter) {
+            if (!localDefiActif || !localDefiActif.actif) return;
+
+            const cibleId = localDefiActif.cibleId;
+            const cibleNom = localDefiActif.cibleNom;
+            const attaquantId = localDefiActif.attaquantId;
+            const attaquantNom = localDefiActif.attaquantNom;
+
+            if (!verifierPin(cibleId)) return alert("Seul " + cibleNom + " peut répondre à ce défi !");
+
+            if (accepter) {
+                histoRef.push({
+                    texte: `⚔️ DÉFI ACCEPTÉ : ${cibleNom} a accepté le défi de ${attaquantNom} !`,
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
+                alert("Défi accepté ! Bonne chance aux joueurs !");
+            } else {
+                financerImpactBourse(cibleId, -50, 
+                    `🚫 DÉFI REFUSÉ : ${cibleNom} a refusé le défi de ${attaquantNom} (-50 € au profit de ${attaquantNom})`,
+                    `🚫 Défi refusé. 50 € ont été prélevés sur ton compte et versés à ${attaquantNom}.`
+                );
+
+                const soldeAttaquant = window.localJoueurs[attaquantId]?.solde || 0;
+                joueursRef.child(attaquantId).update({
+                    ancienSolde: soldeAttaquant,
+                    solde: soldeAttaquant + 50
+                });
+            }
+
+            defiRef.set({ actif: false });
+            enregistrerActivite();
         }
 
         // ROUE DE LA FORTUNE QUOTIDIENNE
@@ -791,9 +1008,7 @@
                 } else if (gain.type === "joker") {
                     const jokersActuels = joueur.jokers || 0;
                     if (jokersActuels >= 2) {
-                        txtRes += " (2 Jokers déjà détenus ➔ Converti en +25 € !)";
-                        const soldeActuel = joueur.solde || 0;
-                        joueursRef.child(jId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 25 });
+                        txtRes += " (3ᵉ Joker OBLIGATOIRE ➔ Lancement d'un Défi !)";
                     } else {
                         joueursRef.child(jId).child('jokers').set(jokersActuels + 1);
                     }
@@ -813,6 +1028,10 @@
                     canvas.style.transform = 'rotate(0deg)';
                     btn.disabled = false;
                     document.getElementById('roue-resultat-txt').textContent = '';
+
+                    if (gain.type === "joker" && (joueur.jokers || 0) >= 2) {
+                        attraper3emeJokerObligatoire(jId, joueur.nom, "Roue de la Fortune");
+                    }
                 }, 3500);
 
             }, 4000);
