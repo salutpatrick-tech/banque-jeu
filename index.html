@@ -506,7 +506,6 @@
                 </div>
             </div>
 
-            <!-- CHANGER PIN ADMIN -->
             <div class="card admin-only">
                 <h2>🔐 Modifier le Mot de Passe Admin</h2>
                 <label for="nouveau-pin-admin">Nouveau Mot de Passe Admin :</label>
@@ -1163,7 +1162,7 @@
                 const item = document.createElement('div');
                 item.className = 'demande-item';
                 item.innerHTML = '<div><strong>' + d.emetteurNom + '</strong> ➔ <strong>' + d.destNom + '</strong> (' + d.type + ')</div>' +
-                    '<div>Montant : <strong>' + d.montant + ' €</strong>' + (d.taux ? ' | Taux : <strong>' + d.taux + '%</strong>' : '') + '</div>' +
+                    '<div>Montant : <strong>' + d.montant + ' €' + (d.taux ? ' | Taux : <strong>' + d.taux + '%</strong>' : '') + '</div>' +
                     '<div class="demande-actions">' +
                     '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
                     '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser</button>' +
@@ -1178,31 +1177,98 @@
                 if (!d) return;
 
                 if (accepter) {
-                    if (d.type === "Emprunt" && d.taux > 0) {
-                        const montantCapital = d.montant;
-                        const montantTotalARembourser = Math.round(montantCapital * (1 + d.taux / 100));
+                    if (d.type === "Emprunt") {
+                        const tauxApplique = (d.destId === "BANQUE") ? 50 : (d.taux || 0);
+                        const montantEmprunte = d.montant;
                         
-                        const joueurDebiteur = window.localJoueurs[d.emetteurId];
-                        if (joueurDebiteur) {
-                            const soldeActuel = joueurDebiteur.solde || 0;
+                        const joueurEmprunteur = window.localJoueurs[d.emetteurId];
+
+                        if (joueurEmprunteur) {
+                            const soldeActuel = joueurEmprunteur.solde || 0;
+
+                            if (d.destId !== "BANQUE") {
+                                if (!verifierPin(d.destId)) {
+                                    return alert("Code PIN du prêteur incorrect !");
+                                }
+                                const joueurPreteur = window.localJoueurs[d.destId];
+                                if (joueurPreteur) {
+                                    const soldePreteur = joueurPreteur.solde || 0;
+                                    joueursRef.child(d.destId).update({
+                                        ancienSolde: soldePreteur,
+                                        solde: soldePreteur - montantEmprunte
+                                    });
+                                }
+                            }
+
                             joueursRef.child(d.emetteurId).update({
                                 ancienSolde: soldeActuel,
-                                solde: soldeActuel + montantCapital
+                                solde: soldeActuel + montantEmprunte
+                            });
+
+                            const montantAValoir = Math.round(montantEmprunte * (1 + tauxApplique / 100));
+
+                            histoRef.push({ 
+                                texte: `✅ Prêt accordé : ${d.emetteurNom} reçoit ${montantEmprunte} € de ${d.destNom} (Taux ${tauxApplique}% ➔ Montant à rembourser : ${montantAValoir} €)`, 
+                                date: new Date().toLocaleTimeString('fr-FR') 
                             });
                         }
 
-                        histoRef.push({ 
-                            texte: '✅ Prêt accepté : ' + d.emetteurNom + ' a reçu ' + montantCapital + ' € de ' + d.destNom + ' (Taux ' + d.taux + '% ➔ Total à rembourser : ' + montantTotalARembourser + ' €)', 
-                            date: new Date().toLocaleTimeString('fr-FR') 
-                        });
+                    } else if (d.type === "Virement") {
+                        if (d.destId !== "BANQUE" && !verifierPin(d.destId)) {
+                            return alert("Code PIN incorrect ! Le virement est annulé.");
+                        }
+
+                        const emetteur = window.localJoueurs[d.emetteurId];
+                        const destinataire = window.localJoueurs[d.destId];
+
+                        const tauxApplique = d.taux || 0;
+                        const montantMajor = Math.round(d.montant * (1 + tauxApplique / 100));
+
+                        if (destinataire && emetteur) {
+                            const soldeDest = destinataire.solde || 0;
+                            const soldeEmet = emetteur.solde || 0;
+
+                            joueursRef.child(d.destId).update({
+                                ancienSolde: soldeDest,
+                                solde: soldeDest - montantMajor
+                            });
+
+                            joueursRef.child(d.emetteurId).update({
+                                ancienSolde: soldeEmet,
+                                solde: soldeEmet + montantMajor
+                            });
+
+                            let detailsTaux = tauxApplique > 0 ? ` (dont ${tauxApplique}% de taux)` : '';
+                            histoRef.push({ 
+                                texte: `💸 Virement effectué : ${montantMajor} € versés de ${d.destNom} à ${d.emetteurNom}${detailsTaux}`, 
+                                date: new Date().toLocaleTimeString('fr-FR') 
+                            });
+
+                        } else if (d.destId === "BANQUE") {
+                            const soldeEmet = emetteur.solde || 0;
+                            joueursRef.child(d.emetteurId).update({
+                                ancienSolde: soldeEmet,
+                                solde: soldeEmet - d.montant
+                            });
+
+                            histoRef.push({ 
+                                texte: `💸 Virement vers la Banque : ${d.emetteurNom} a versé ${d.montant} € à la Banque`, 
+                                date: new Date().toLocaleTimeString('fr-FR') 
+                            });
+                        }
+
                     } else {
                         histoRef.push({ 
-                            texte: '✅ Demande de ' + d.emetteurNom + ' validée (' + d.montant + ' €)', 
+                            texte: `✅ Demande de ${d.emetteurNom} validée (${d.montant} €)`, 
                             date: new Date().toLocaleTimeString('fr-FR') 
                         });
                     }
+
                 } else {
-                    histoRef.push({ texte: '❌ Demande de ' + d.emetteurNom + ' refusée', date: new Date().toLocaleTimeString('fr-FR') });
+                    histoRef.push({ 
+                        texte: `❌ Demande de ${d.emetteurNom} refusée`, 
+                        date: new Date().toLocaleTimeString('fr-FR') 
+                    });
                 }
 
                 demandesRef.child(id).remove();
