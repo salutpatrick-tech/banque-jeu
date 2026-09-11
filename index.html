@@ -822,7 +822,7 @@
                         }
 
                     } else if (d.type === "Virement") {
-                        if (d.destId !== "BANQUE" && !verifierPin(d.destId)) {
+                        if (d.destId !== "BANQUE" && !verifierPin(d.emetteurId)) {
                             return alert("Code PIN incorrect ! Le virement est annulé.");
                         }
 
@@ -836,19 +836,19 @@
                             const soldeDest = destinataire.solde || 0;
                             const soldeEmet = emetteur.solde || 0;
 
-                            joueursRef.child(d.destId).update({
-                                ancienSolde: soldeDest,
-                                solde: soldeDest - montantMajor
-                            });
-
                             joueursRef.child(d.emetteurId).update({
                                 ancienSolde: soldeEmet,
-                                solde: soldeEmet + montantMajor
+                                solde: soldeEmet - montantMajor
+                            });
+
+                            joueursRef.child(d.destId).update({
+                                ancienSolde: soldeDest,
+                                solde: soldeDest + montantMajor
                             });
 
                             let detailsTaux = tauxApplique > 0 ? ' (dont ' + tauxApplique + '% de taux)' : '';
                             histoRef.push({ 
-                                texte: '💸 Virement effectué : ' + montantMajor + ' € versés de ' + d.destNom + ' à ' + d.emetteurNom + detailsTaux, 
+                                texte: '💸 Virement effectué : ' + montantMajor + ' € versés de ' + d.emetteurNom + ' à ' + d.destNom + detailsTaux, 
                                 date: new Date().toLocaleTimeString('fr-FR'),
                                 joueurId: d.emetteurId,
                                 montant: montantMajor,
@@ -992,10 +992,10 @@
                 if (h.typeOp === 'depot') inversion = -montant;
                 else if (h.typeOp === 'retrait') inversion = montant;
                 else if (h.typeOp === 'virement') {
-                    inversion = -montant;
+                    inversion = montant;
                     if (h.destId && window.localJoueurs[h.destId]) {
                         const dest = window.localJoueurs[h.destId];
-                        joueursRef.child(h.destId).update({ solde: (dest.solde || 0) + montant });
+                        joueursRef.child(h.destId).update({ solde: (dest.solde || 0) - montant });
                     }
                 }
 
