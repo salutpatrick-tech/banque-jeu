@@ -205,6 +205,13 @@
             margin-left: 6px;
         }
 
+        .dette-tag {
+            color: var(--danger);
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
         .taux-banque-info {
             background-color: #f1f5f9;
             padding: 8px 12px;
@@ -632,10 +639,12 @@
                 const j = data[id];
                 const soldeActuel = j.solde || 0;
                 const ancienSolde = j.ancienSolde !== undefined ? j.ancienSolde : null;
+                const detteActuelle = j.dette || 0;
 
                 const li = document.createElement('li');
                 li.innerHTML = '<div><strong>' + j.nom + '</strong>' +
                     '<div class="solde">' + soldeActuel + ' €' + (ancienSolde !== null ? ' <span class="ancien-solde">(Ancien: ' + ancienSolde + ' €)</span>' : '') + '</div>' +
+                    (detteActuelle > 0 ? '<div class="dette-tag">⚠️ Dette Banque : ' + detteActuelle + ' €</div>' : '') +
                     '<div class="badge-joker">🃏 Jokers : ' + (j.jokers || 0) + ' / 2</div></div>' +
                     '<div>' + (window.isAdmin ? '<button class="btn-danger-sm" onclick="supprimerJoueur(\'' + id + '\')">❌</button>' : '') + '</div>';
                 listeUi.appendChild(li);
@@ -790,6 +799,8 @@
 
                         if (joueurEmprunteur) {
                             const soldeActuel = joueurEmprunteur.solde || 0;
+                            const detteActuelle = joueurEmprunteur.dette || 0;
+                            const montantAValoir = Math.round(montantEmprunte * (1 + tauxApplique / 100));
 
                             if (d.destId !== "BANQUE") {
                                 if (!verifierPin(d.destId)) {
@@ -805,12 +816,12 @@
                                 }
                             }
 
+                            // Mise à jour du solde ET enregistrement de la dette si emprunt à la banque
                             joueursRef.child(d.emetteurId).update({
                                 ancienSolde: soldeActuel,
-                                solde: soldeActuel + montantEmprunte
+                                solde: soldeActuel + montantEmprunte,
+                                dette: (d.destId === "BANQUE") ? (detteActuelle + montantAValoir) : detteActuelle
                             });
-
-                            const montantAValoir = Math.round(montantEmprunte * (1 + tauxApplique / 100));
 
                             histoRef.push({ 
                                 texte: '✅ Prêt accordé : ' + d.emetteurNom + ' reçoit ' + montantEmprunte + ' € de ' + d.destNom + ' (Taux ' + tauxApplique + '% ➔ Montant à rembourser : ' + montantAValoir + ' €)', 
@@ -858,9 +869,13 @@
 
                         } else if (d.destId === "BANQUE") {
                             const soldeEmet = emetteur.solde || 0;
+                            const detteActuelle = emetteur.dette || 0;
+                            const nouvelleDette = Math.max(0, detteActuelle - d.montant);
+
                             joueursRef.child(d.emetteurId).update({
                                 ancienSolde: soldeEmet,
-                                solde: soldeEmet - d.montant
+                                solde: soldeEmet - d.montant,
+                                dette: nouvelleDette
                             });
 
                             histoRef.push({ 
@@ -1049,6 +1064,7 @@
                 nom: nom,
                 pin: pin,
                 solde: 0,
+                dette: 0,
                 jokers: 0
             }).then(() => {
                 alert("Joueur " + nom + " créé !");
