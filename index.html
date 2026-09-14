@@ -432,7 +432,6 @@
                 </div>
             </div>
 
-            <!-- SECTION ADMIN : REINITIALISATION & AJUSTEMENT libre DES SOLDES -->
             <div class="card admin-only">
                 <h2>🔄 Gestion Directe des Soldes & Dettes</h2>
                 <button class="btn-warning" onclick="resetDettes()">💸 Remettre à zéro TOUTES les dettes</button>
@@ -449,7 +448,7 @@
                 <input type="number" id="admin-nouveau-solde" placeholder="Ex: 500 pour définir à 500€">
 
                 <div style="display: flex; gap: 8px;">
-                    <button onclick="definirNouveauSoldeAdmin()" class="btn-success">🎯 Définir exactement ce solde</button>
+                    <button onclick="definirNouveauSoldeAdmin()" class="btn-success">🎯 Définir ce solde</button>
                     <button onclick="ajouterMontantSoldeAdmin()" class="btn-warning">➕ Ajouter ce montant</button>
                 </div>
             </div>
@@ -572,7 +571,7 @@
                 }
                 el.innerHTML = "Statut : 🎯 <strong>Tirage effectué</strong> pour <strong>" + gagnantNom + "</strong>";
             } else {
-                el.innerHTML = "Statut : ⏳ <strong>Tirage en cours</strong> (Actions : " + (localRoueConfig.nbActions || 0) + ")";
+                el.innerHTML = "Statut : ⏳ <strong>Tirage en cours</strong> (Actions : " + (localRoueConfig.nbActions || 0) + "/3)";
             }
         });
 
@@ -585,6 +584,103 @@
                 tire: false,
                 joueurGagnantId: null
             }).then(() => alert("Le tirage de la roue a été réinitialisé pour aujourd'hui !"));
+        }
+
+        /* --- LOGIQUE DES ÉVÉNEMENTS ALEATOIRES (ROUE, JOKERS & OPPORTUNITÉS BOURSIÈRES) --- */
+        function enregistrerActionEtVerifierEvenements() {
+            const dateToday = new Date().toLocaleDateString('fr-FR');
+            
+            // 1. Opportunité boursière aléatoire (50% de chance d'événement boursier à chaque transaction)
+            if (Math.random() < 0.50) {
+                const listeIds = Object.keys(window.localJoueurs);
+                if (listeIds.length > 0) {
+                    const randomId = listeIds[Math.floor(Math.random() * listeIds.length)];
+                    const joueur = window.localJoueurs[randomId];
+                    const soldeActuel = joueur.solde || 0;
+
+                    if (soldeActuel > 0) {
+                        const estGain = Math.random() < 0.50; // 50% gain, 50% perte
+                        const pourcentage = Math.floor(Math.random() * 9 + 1) * 10; // 10% à 90%
+                        const variation = Math.round(soldeActuel * (pourcentage / 100));
+
+                        let nouveauSolde = soldeActuel;
+                        let message = "";
+
+                        if (estGain) {
+                            nouveauSolde = soldeActuel + variation;
+                            message = '📈 BOURSE : 🟢 ' + joueur.nom + ' réalise un coup de bourse exceptionnel ! (Gain de +' + pourcentage + '% ➔ +' + variation + ' €)';
+                        } else {
+                            nouveauSolde = Math.max(0, soldeActuel - variation);
+                            message = '📉 BOURSE : 🔴 Crach boursier pour ' + joueur.nom + ' ! (Perte de -' + pourcentage + '% ➔ -' + variation + ' €)';
+                        }
+
+                        joueursRef.child(randomId).update({
+                            ancienSolde: soldeActuel,
+                            solde: nouveauSolde
+                        });
+
+                        histoRef.push({
+                            texte: message,
+                            date: new Date().toLocaleTimeString('fr-FR'),
+                            joueurId: randomId,
+                            montant: variation
+                        });
+                    }
+                }
+            }
+
+            // 2. Roue de la fortune (Tirage au sort toutes les 3 actions quotidiennes)
+            roueRef.once('value', snapshot => {
+                let config = snapshot.val() || {};
+
+                if (!config.date || config.date !== dateToday) {
+                    config = { date: dateToday, nbActions: 0, tire: false, joueurGagnantId: null };
+                }
+
+                if (config.tire) return;
+
+                config.nbActions = (config.nbActions || 0) + 1;
+
+                if (config.nbActions >= 3) {
+                    config.tire = true;
+                    
+                    const listeIds = Object.keys(window.localJoueurs);
+                    if (listeIds.length > 0) {
+                        const randomId = listeIds[Math.floor(Math.random() * listeIds.length)];
+                        const gagnant = window.localJoueurs[randomId];
+                        config.joueurGagnantId = randomId;
+
+                        const estJoker = Math.random() < 0.15; // 15% chance de Joker
+
+                        if (estJoker) {
+                            const jokersActuels = gagnant.jokers || 0;
+                            if (jokersActuels < 2) {
+                                joueursRef.child(randomId).update({ jokers: jokersActuels + 1 });
+                                histoRef.push({
+                                    texte: '🎡 ROUE DE LA FORTUNE : 🎯 ' + gagnant.nom + ' gagne 1 JOKER ! 🃏',
+                                    date: new Date().toLocaleTimeString('fr-FR')
+                                });
+                            } else {
+                                const soldeActuel = gagnant.solde || 0;
+                                joueursRef.child(randomId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 50 });
+                                histoRef.push({
+                                    texte: '🎡 ROUE DE LA FORTUNE : 🎯 ' + gagnant.nom + ' (Jokers max) reçoit un bonus de 50 € !',
+                                    date: new Date().toLocaleTimeString('fr-FR')
+                                });
+                            }
+                        } else {
+                            const gainEuro = Math.floor(Math.random() * 9 + 2) * 10;
+                            const soldeActuel = gagnant.solde || 0;
+                            joueursRef.child(randomId).update({ ancienSolde: soldeActuel, solde: soldeActuel + gainEuro });
+                            histoRef.push({
+                                texte: '🎡 ROUE DE LA FORTUNE : 🎯 ' + gagnant.nom + ' gagne ' + gainEuro + ' € !',
+                                date: new Date().toLocaleTimeString('fr-FR')
+                            });
+                        }
+                    }
+                }
+                roueRef.set(config);
+            });
         }
 
         function changerOnglet(tabId, element) {
@@ -633,7 +729,6 @@
             actualiserHistoriqueUI();
         }
 
-        /* FONCTIONS ADMIN DE RESET ET EDITIONS DES SOLDES */
         function resetDettes() {
             if (!window.isAdmin) return;
             if (confirm("Voulez-vous remettre à zéro TOUTES les dettes bancaires de tous les joueurs ?")) {
@@ -820,6 +915,7 @@
             }
 
             document.getElementById('transac-montant').value = '';
+            enregistrerActionEtVerifierEvenements();
         }
 
         function gererAffichageTaux() {
@@ -1002,6 +1098,7 @@
                         });
                     }
 
+                    enregistrerActionEtVerifierEvenements();
                 } else {
                     histoRef.push({ 
                         texte: '❌ Demande de ' + d.emetteurNom + ' refusée', 
