@@ -56,6 +56,25 @@
             color: #15803d;
         }
 
+        /* Banner Bonus Connexion Aléatoire */
+        .bonus-banner {
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
         .nav-tabs {
             position: fixed;
             bottom: 0;
@@ -328,6 +347,11 @@
             <span id="admin-badge" class="admin-badge">🔒 Mode Joueur</span>
         </header>
 
+        <!-- BANDEAU BONUS CONNEXION SURPRISE -->
+        <div id="bonus-banner" class="bonus-banner">
+            🎁 <span id="bonus-texte">Un bonus vient d'être distribué !</span>
+        </div>
+
         <div id="chrono-banner" class="chrono-banner" style="display: none;">
             <div id="chrono-description" class="chrono-title">⏱️ Défi en cours</div>
             <div class="chrono-display">
@@ -402,7 +426,7 @@
             </div>
 
             <div class="card">
-                <h2>📋 Demandes en cours</h2>
+                <h2>📋 Demandes & Événements en cours</h2>
                 <div id="liste-demandes">
                     <p>Aucune demande active.</p>
                 </div>
@@ -545,6 +569,7 @@
         const chronoRef = db.ref('config/chrono');
         const roueRef = db.ref('config/roueQuotidienne');
         const adminPinRef = db.ref('config/adminPin');
+        const bonusConnexionRef = db.ref('config/bonusConnexion');
 
         window.localJoueurs = {};
         window.isAdmin = false;
@@ -555,6 +580,56 @@
             const val = snapshot.val();
             if (val) currentAdminPin = val;
         });
+
+        /* --- BONUS DE CONNEXION ALEATOIRE --- */
+        bonusConnexionRef.on('value', snapshot => {
+            const data = snapshot.val() || {};
+            if (data.message) {
+                document.getElementById('bonus-banner').style.display = 'block';
+                document.getElementById('bonus-texte').innerHTML = data.message;
+            }
+        });
+
+        function tenterBonusConnexionAleatoire() {
+            if (sessionStorage.getItem('bonusTente')) return;
+            sessionStorage.setItem('bonusTente', 'true');
+
+            if (Math.random() > 0.33) return;
+
+            joueursRef.once('value', snapshot => {
+                const joueursData = snapshot.val() || {};
+                const listeIds = Object.keys(joueursData);
+                if (listeIds.length === 0) return;
+
+                const randomId = listeIds[Math.floor(Math.random() * listeIds.length)];
+                const gagnant = joueursData[randomId];
+
+                const estJoker = Math.random() < 0.20;
+                let messageBonus = "";
+
+                if (estJoker) {
+                    const jokersActuels = gagnant.jokers || 0;
+                    if (jokersActuels < 2) {
+                        joueursRef.child(randomId).update({ jokers: jokersActuels + 1 });
+                        messageBonus = '🎁 BONUS DE CONNEXION : 🃏 <strong>' + gagnant.nom + '</strong> gagne 1 JOKER !';
+                    } else {
+                        const soldeActuel = gagnant.solde || 0;
+                        joueursRef.child(randomId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 25 });
+                        messageBonus = '🎁 BONUS DE CONNEXION : 💰 <strong>' + gagnant.nom + '</strong> gagne 25 € !';
+                    }
+                } else {
+                    const gainEuro = Math.floor(Math.random() * 5 + 1) * 10;
+                    const soldeActuel = gagnant.solde || 0;
+                    joueursRef.child(randomId).update({ ancienSolde: soldeActuel, solde: soldeActuel + gainEuro });
+                    messageBonus = '🎁 BONUS DE CONNEXION : 💰 <strong>' + gagnant.nom + '</strong> gagne <strong>' + gainEuro + ' €</strong> !';
+                }
+
+                bonusConnexionRef.set({ message: messageBonus, timestamp: Date.now() });
+                histoRef.push({ texte: messageBonus, date: new Date().toLocaleTimeString('fr-FR') });
+            });
+        }
+
+        tenterBonusConnexionAleatoire();
 
         roueRef.on('value', snapshot => {
             const localRoueConfig = snapshot.val() || {};
@@ -578,19 +653,15 @@
         function forcerResetRoueJour() {
             if (!window.isAdmin) return;
             const dateToday = new Date().toLocaleDateString('fr-FR');
-            roueRef.set({
-                date: dateToday,
-                nbActions: 0,
-                tire: false,
-                joueurGagnantId: null
-            }).then(() => alert("Le tirage de la roue a été réinitialisé pour aujourd'hui !"));
+            roueRef.set({ date: dateToday, nbActions: 0, tire: false, joueurGagnantId: null })
+                .then(() => alert("Le tirage de la roue a été réinitialisé !"));
         }
 
-        /* --- LOGIQUE DES ÉVÉNEMENTS ALEATOIRES (ROUE, JOKERS & OPPORTUNITÉS BOURSIÈRES) --- */
+        /* --- LOGIQUE DES ÉVÉNEMENTS ALEATOIRES AVEC VALIDATION/REFUS --- */
         function enregistrerActionEtVerifierEvenements() {
             const dateToday = new Date().toLocaleDateString('fr-FR');
             
-            // 1. Opportunité boursière aléatoire (50% de chance d'événement boursier à chaque transaction)
+            // 1. Opportunité Boursière
             if (Math.random() < 0.50) {
                 const listeIds = Object.keys(window.localJoueurs);
                 if (listeIds.length > 0) {
@@ -599,84 +670,66 @@
                     const soldeActuel = joueur.solde || 0;
 
                     if (soldeActuel > 0) {
-                        const estGain = Math.random() < 0.50; // 50% gain, 50% perte
-                        const pourcentage = Math.floor(Math.random() * 9 + 1) * 10; // 10% à 90%
+                        const estGain = Math.random() < 0.50;
+                        const pourcentage = Math.floor(Math.random() * 9 + 1) * 10;
                         const variation = Math.round(soldeActuel * (pourcentage / 100));
 
-                        let nouveauSolde = soldeActuel;
-                        let message = "";
-
-                        if (estGain) {
-                            nouveauSolde = soldeActuel + variation;
-                            message = '📈 BOURSE : 🟢 ' + joueur.nom + ' réalise un coup de bourse exceptionnel ! (Gain de +' + pourcentage + '% ➔ +' + variation + ' €)';
-                        } else {
-                            nouveauSolde = Math.max(0, soldeActuel - variation);
-                            message = '📉 BOURSE : 🔴 Crach boursier pour ' + joueur.nom + ' ! (Perte de -' + pourcentage + '% ➔ -' + variation + ' €)';
-                        }
-
-                        joueursRef.child(randomId).update({
-                            ancienSolde: soldeActuel,
-                            solde: nouveauSolde
+                        demandesRef.push({
+                            emetteurId: randomId,
+                            emetteurNom: joueur.nom,
+                            destId: "BANQUE",
+                            destNom: "Bourse",
+                            type: "Événement Bourse",
+                            montant: variation,
+                            estGain: estGain,
+                            pourcentage: pourcentage,
+                            status: 'attente'
                         });
 
                         histoRef.push({
-                            texte: message,
-                            date: new Date().toLocaleTimeString('fr-FR'),
-                            joueurId: randomId,
-                            montant: variation
+                            texte: '📈 BOURSE : Une opportunité touche ' + joueur.nom + ' (' + (estGain ? '+' : '-') + pourcentage + '% | ' + variation + ' €) - En attente d\'acceptation',
+                            date: new Date().toLocaleTimeString('fr-FR')
                         });
                     }
                 }
             }
 
-            // 2. Roue de la fortune (Tirage au sort toutes les 3 actions quotidiennes)
+            // 2. Roue de la fortune
             roueRef.once('value', snapshot => {
                 let config = snapshot.val() || {};
-
                 if (!config.date || config.date !== dateToday) {
                     config = { date: dateToday, nbActions: 0, tire: false, joueurGagnantId: null };
                 }
 
                 if (config.tire) return;
-
                 config.nbActions = (config.nbActions || 0) + 1;
 
                 if (config.nbActions >= 3) {
                     config.tire = true;
-                    
                     const listeIds = Object.keys(window.localJoueurs);
                     if (listeIds.length > 0) {
                         const randomId = listeIds[Math.floor(Math.random() * listeIds.length)];
                         const gagnant = window.localJoueurs[randomId];
                         config.joueurGagnantId = randomId;
 
-                        const estJoker = Math.random() < 0.15; // 15% chance de Joker
+                        const estJoker = Math.random() < 0.15;
+                        const gainEuro = estJoker ? 0 : Math.floor(Math.random() * 5 + 1) * 10;
 
-                        if (estJoker) {
-                            const jokersActuels = gagnant.jokers || 0;
-                            if (jokersActuels < 2) {
-                                joueursRef.child(randomId).update({ jokers: jokersActuels + 1 });
-                                histoRef.push({
-                                    texte: '🎡 ROUE DE LA FORTUNE : 🎯 ' + gagnant.nom + ' gagne 1 JOKER ! 🃏',
-                                    date: new Date().toLocaleTimeString('fr-FR')
-                                });
-                            } else {
-                                const soldeActuel = gagnant.solde || 0;
-                                joueursRef.child(randomId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 50 });
-                                histoRef.push({
-                                    texte: '🎡 ROUE DE LA FORTUNE : 🎯 ' + gagnant.nom + ' (Jokers max) reçoit un bonus de 50 € !',
-                                    date: new Date().toLocaleTimeString('fr-FR')
-                                });
-                            }
-                        } else {
-                            const gainEuro = Math.floor(Math.random() * 9 + 2) * 10;
-                            const soldeActuel = gagnant.solde || 0;
-                            joueursRef.child(randomId).update({ ancienSolde: soldeActuel, solde: soldeActuel + gainEuro });
-                            histoRef.push({
-                                texte: '🎡 ROUE DE LA FORTUNE : 🎯 ' + gagnant.nom + ' gagne ' + gainEuro + ' € !',
-                                date: new Date().toLocaleTimeString('fr-FR')
-                            });
-                        }
+                        demandesRef.push({
+                            emetteurId: randomId,
+                            emetteurNom: gagnant.nom,
+                            destId: "BANQUE",
+                            destNom: "Roue de la Fortune",
+                            type: "Événement Roue",
+                            montant: gainEuro,
+                            estJoker: estJoker,
+                            status: 'attente'
+                        });
+
+                        histoRef.push({
+                            texte: '🎡 ROUE : ' + gagnant.nom + ' tire le lot (' + (estJoker ? '1 Joker' : gainEuro + ' €') + ') - En attente d\'acceptation',
+                            date: new Date().toLocaleTimeString('fr-FR')
+                        });
                     }
                 }
                 roueRef.set(config);
@@ -980,12 +1033,34 @@
                 const d = data[id];
                 const item = document.createElement('div');
                 item.className = 'demande-item';
-                item.innerHTML = '<div><strong>' + d.emetteurNom + '</strong> ➔ <strong>' + d.destNom + '</strong> (' + d.type + ')</div>' +
-                    '<div>Montant : <strong>' + d.montant + ' €' + (d.taux ? ' | Taux : <strong>' + d.taux + '%</strong>' : '') + '</div>' +
-                    '<div class="demande-actions">' +
-                    '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
-                    '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser</button>' +
-                    '</div>';
+
+                if (d.type === "Événement Bourse") {
+                    const signe = d.estGain ? "📈 Gain" : "📉 Perte";
+                    item.innerHTML = '<div><strong>📈 Bourse pour ' + d.emetteurNom + '</strong></div>' +
+                        '<div>Effet proposé : ' + signe + ' de <strong>' + d.pourcentage + '%</strong> (' + (d.estGain ? '+' : '-') + d.montant + ' €)</div>' +
+                        '<small style="color:var(--danger)">Un refus entraîne une taxe de 20 €</small>' +
+                        '<div class="demande-actions">' +
+                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                        '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser (-20 €)</button>' +
+                        '</div>';
+                } else if (d.type === "Événement Roue") {
+                    const lot = d.estJoker ? "1 Joker 🃏" : d.montant + " € 💰";
+                    item.innerHTML = '<div><strong>🎡 Roue de la Fortune pour ' + d.emetteurNom + '</strong></div>' +
+                        '<div>Gain proposé : <strong>' + lot + '</strong></div>' +
+                        '<small style="color:var(--danger)">Un refus entraîne une taxe de 20 €</small>' +
+                        '<div class="demande-actions">' +
+                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                        '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser (-20 €)</button>' +
+                        '</div>';
+                } else {
+                    item.innerHTML = '<div><strong>' + d.emetteurNom + '</strong> ➔ <strong>' + d.destNom + '</strong> (' + d.type + ')</div>' +
+                        '<div>Montant : <strong>' + d.montant + ' €' + (d.taux ? ' | Taux : <strong>' + d.taux + '%</strong>' : '') + '</div>' +
+                        '<div class="demande-actions">' +
+                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                        '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser</button>' +
+                        '</div>';
+                }
+
                 conteneur.appendChild(item);
             });
         });
@@ -995,29 +1070,74 @@
                 const d = snapshot.val();
                 if (!d) return;
 
+                const joueurTarget = window.localJoueurs[d.emetteurId];
+
+                // --- GESTION DES ÉVÉNEMENTS BOURSE ET ROUE ---
+                if (d.type === "Événement Bourse" || d.type === "Événement Roue") {
+                    if (!verifierPin(d.emetteurId)) return alert("Code PIN incorrect !");
+
+                    if (accepter) {
+                        if (d.type === "Événement Bourse") {
+                            const soldeActuel = joueurTarget.solde || 0;
+                            const nouveauSolde = d.estGain ? (soldeActuel + d.montant) : Math.max(0, soldeActuel - d.montant);
+                            joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: nouveauSolde });
+
+                            histoRef.push({
+                                texte: '📈 BOURSE ACCEPTEE : ' + d.emetteurNom + (d.estGain ? ' gagne +' : ' perd -') + d.montant + ' €',
+                                date: new Date().toLocaleTimeString('fr-FR')
+                            });
+                        } else if (d.type === "Événement Roue") {
+                            if (d.estJoker) {
+                                const jokersActuels = joueurTarget.jokers || 0;
+                                if (jokersActuels < 2) {
+                                    joueursRef.child(d.emetteurId).update({ jokers: jokersActuels + 1 });
+                                    histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' reçoit 1 Joker 🃏', date: new Date().toLocaleTimeString('fr-FR') });
+                                } else {
+                                    const soldeActuel = joueurTarget.solde || 0;
+                                    joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 50 });
+                                    histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' (Jokers max) reçoit 50 €', date: new Date().toLocaleTimeString('fr-FR') });
+                                }
+                            } else {
+                                const soldeActuel = joueurTarget.solde || 0;
+                                joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel + d.montant });
+                                histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' gagne ' + d.montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
+                            }
+                        }
+                    } else {
+                        // TAXE DE 20€ SI REFUS
+                        const soldeActuel = joueurTarget.solde || 0;
+                        joueursRef.child(d.emetteurId).update({
+                            ancienSolde: soldeActuel,
+                            solde: soldeActuel - 20
+                        });
+
+                        histoRef.push({
+                            texte: '🚫 REFUS (' + d.type + ') : ' + d.emetteurNom + ' a refusé l\'événement et paie une taxe de 20 €',
+                            date: new Date().toLocaleTimeString('fr-FR')
+                        });
+                    }
+
+                    demandesRef.child(id).remove();
+                    return;
+                }
+
+                // --- GESTION DES PRÊTS ET VIREMENTS TRADITIONNELS ---
                 if (accepter) {
                     if (d.type === "Emprunt") {
                         const tauxApplique = (d.destId === "BANQUE") ? 50 : (d.taux || 0);
                         const montantEmprunte = d.montant;
                         
-                        const joueurEmprunteur = window.localJoueurs[d.emetteurId];
-
-                        if (joueurEmprunteur) {
-                            const soldeActuel = joueurEmprunteur.solde || 0;
-                            const detteActuelle = joueurEmprunteur.dette || 0;
+                        if (joueurTarget) {
+                            const soldeActuel = joueurTarget.solde || 0;
+                            const detteActuelle = joueurTarget.dette || 0;
                             const montantAValoir = Math.round(montantEmprunte * (1 + tauxApplique / 100));
 
                             if (d.destId !== "BANQUE") {
-                                if (!verifierPin(d.destId)) {
-                                    return alert("Code PIN du prêteur incorrect !");
-                                }
+                                if (!verifierPin(d.destId)) return alert("Code PIN du prêteur incorrect !");
                                 const joueurPreteur = window.localJoueurs[d.destId];
                                 if (joueurPreteur) {
                                     const soldePreteur = joueurPreteur.solde || 0;
-                                    joueursRef.child(d.destId).update({
-                                        ancienSolde: soldePreteur,
-                                        solde: soldePreteur - montantEmprunte
-                                    });
+                                    joueursRef.child(d.destId).update({ ancienSolde: soldePreteur, solde: soldePreteur - montantEmprunte });
                                 }
                             }
 
@@ -1037,9 +1157,7 @@
                         }
 
                     } else if (d.type === "Virement") {
-                        if (d.destId !== "BANQUE" && !verifierPin(d.emetteurId)) {
-                            return alert("Code PIN incorrect ! Le virement est annulé.");
-                        }
+                        if (d.destId !== "BANQUE" && !verifierPin(d.emetteurId)) return alert("Code PIN incorrect ! Le virement est annulé.");
 
                         const emetteur = window.localJoueurs[d.emetteurId];
                         const destinataire = window.localJoueurs[d.destId];
@@ -1051,15 +1169,8 @@
                             const soldeDest = destinataire.solde || 0;
                             const soldeEmet = emetteur.solde || 0;
 
-                            joueursRef.child(d.emetteurId).update({
-                                ancienSolde: soldeEmet,
-                                solde: soldeEmet - montantMajor
-                            });
-
-                            joueursRef.child(d.destId).update({
-                                ancienSolde: soldeDest,
-                                solde: soldeDest + montantMajor
-                            });
+                            joueursRef.child(d.emetteurId).update({ ancienSolde: soldeEmet, solde: soldeEmet - montantMajor });
+                            joueursRef.child(d.destId).update({ ancienSolde: soldeDest, solde: soldeDest + montantMajor });
 
                             let detailsTaux = tauxApplique > 0 ? ' (dont ' + tauxApplique + '% de taux)' : '';
                             histoRef.push({ 
