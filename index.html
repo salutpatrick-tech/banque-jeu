@@ -56,7 +56,6 @@
             color: #15803d;
         }
 
-        /* Banner Bonus Connexion Aléatoire */
         .bonus-banner {
             background: linear-gradient(135deg, #059669, #10b981);
             color: white;
@@ -334,6 +333,32 @@
             text-decoration: line-through;
             color: #94a3b8 !important;
         }
+
+        .wheel-container {
+            position: relative;
+            width: 260px;
+            height: 260px;
+            margin: 15px auto;
+        }
+
+        .wheel-pointer {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 24px solid #ef4444;
+            z-index: 10;
+        }
+
+        #wheel-svg {
+            width: 100%;
+            height: 100%;
+            transition: transform 4s cubic-bezier(0.15, 0.9, 0.2, 1);
+        }
     </style>
 
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
@@ -347,7 +372,6 @@
             <span id="admin-badge" class="admin-badge">🔒 Mode Joueur</span>
         </header>
 
-        <!-- BANDEAU BONUS CONNEXION SURPRISE -->
         <div id="bonus-banner" class="bonus-banner">
             🎁 <span id="bonus-texte">Un bonus vient d'être distribué !</span>
         </div>
@@ -542,6 +566,22 @@
         </div>
     </div>
 
+    <!-- MODAL DE LA ROUE DE LA FORTUNE -->
+    <div id="modal-roue" class="modal-edit">
+        <div class="modal-edit-content">
+            <h3 style="margin-top:0; color: #8b5cf6;">🎡 Roue de la Fortune</h3>
+            <p id="roue-joueur-nom" style="font-weight: bold; margin-bottom: 5px;"></p>
+
+            <div class="wheel-container">
+                <div class="wheel-pointer"></div>
+                <svg id="wheel-svg" viewBox="0 0 200 200"></svg>
+            </div>
+
+            <p id="roue-resultat-texte" style="font-size: 1.1rem; font-weight: bold; min-height: 28px; margin: 10px 0;"></p>
+            <button id="btn-tourner-roue" class="btn-success" onclick="lancerAnimationRoue()" style="font-size: 1.1rem; padding: 12px;">🎲 Lancer la roue !</button>
+        </div>
+    </div>
+
     <nav class="nav-tabs">
         <button class="tab-btn active" onclick="changerOnglet('banque', this)">🏦 Banque</button>
         <button class="tab-btn" onclick="changerOnglet('demandes', this)">📩 Demandes</button>
@@ -575,13 +615,13 @@
         window.isAdmin = false;
         let currentAdminPin = "1234";
         let chronoInterval = null;
+        let activeRoueDemandeId = null;
 
         adminPinRef.on('value', snapshot => {
             const val = snapshot.val();
             if (val) currentAdminPin = val;
         });
 
-        /* --- BONUS DE CONNEXION ALEATOIRE --- */
         bonusConnexionRef.on('value', snapshot => {
             const data = snapshot.val() || {};
             if (data.message) {
@@ -657,44 +697,33 @@
                 .then(() => alert("Le tirage de la roue a été réinitialisé !"));
         }
 
-        /* --- LOGIQUE DES ÉVÉNEMENTS ALEATOIRES AVEC VALIDATION/REFUS --- */
         function enregistrerActionEtVerifierEvenements() {
             const dateToday = new Date().toLocaleDateString('fr-FR');
-            
-            // 1. Opportunité Boursière
+
             if (Math.random() < 0.50) {
                 const listeIds = Object.keys(window.localJoueurs);
                 if (listeIds.length > 0) {
                     const randomId = listeIds[Math.floor(Math.random() * listeIds.length)];
                     const joueur = window.localJoueurs[randomId];
-                    const soldeActuel = joueur.solde || 0;
 
-                    if (soldeActuel > 0) {
-                        const estGain = Math.random() < 0.50;
-                        const pourcentage = Math.floor(Math.random() * 9 + 1) * 10;
-                        const variation = Math.round(soldeActuel * (pourcentage / 100));
-
+                    if ((joueur.solde || 0) > 0) {
                         demandesRef.push({
                             emetteurId: randomId,
                             emetteurNom: joueur.nom,
                             destId: "BANQUE",
                             destNom: "Bourse",
                             type: "Événement Bourse",
-                            montant: variation,
-                            estGain: estGain,
-                            pourcentage: pourcentage,
                             status: 'attente'
                         });
 
                         histoRef.push({
-                            texte: '📈 BOURSE : Une opportunité touche ' + joueur.nom + ' (' + (estGain ? '+' : '-') + pourcentage + '% | ' + variation + ' €) - En attente d\'acceptation',
+                            texte: '📈 BOURSE : Une opportunité touche ' + joueur.nom + ' - En attente de décision',
                             date: new Date().toLocaleTimeString('fr-FR')
                         });
                     }
                 }
             }
 
-            // 2. Roue de la fortune
             roueRef.once('value', snapshot => {
                 let config = snapshot.val() || {};
                 if (!config.date || config.date !== dateToday) {
@@ -712,22 +741,17 @@
                         const gagnant = window.localJoueurs[randomId];
                         config.joueurGagnantId = randomId;
 
-                        const estJoker = Math.random() < 0.15;
-                        const gainEuro = estJoker ? 0 : Math.floor(Math.random() * 5 + 1) * 10;
-
                         demandesRef.push({
                             emetteurId: randomId,
                             emetteurNom: gagnant.nom,
                             destId: "BANQUE",
                             destNom: "Roue de la Fortune",
                             type: "Événement Roue",
-                            montant: gainEuro,
-                            estJoker: estJoker,
                             status: 'attente'
                         });
 
                         histoRef.push({
-                            texte: '🎡 ROUE : ' + gagnant.nom + ' tire le lot (' + (estJoker ? '1 Joker' : gainEuro + ' €') + ') - En attente d\'acceptation',
+                            texte: '🎡 ROUE : ' + gagnant.nom + ' a un tirage de la roue disponible !',
                             date: new Date().toLocaleTimeString('fr-FR')
                         });
                     }
@@ -1035,21 +1059,19 @@
                 item.className = 'demande-item';
 
                 if (d.type === "Événement Bourse") {
-                    const signe = d.estGain ? "📈 Gain" : "📉 Perte";
-                    item.innerHTML = '<div><strong>📈 Bourse pour ' + d.emetteurNom + '</strong></div>' +
-                        '<div>Effet proposé : ' + signe + ' de <strong>' + d.pourcentage + '%</strong> (' + (d.estGain ? '+' : '-') + d.montant + ' €)</div>' +
-                        '<small style="color:var(--danger)">Un refus entraîne une taxe de 20 €</small>' +
+                    item.innerHTML = '<div><strong>📈 Opportunité Boursière</strong> pour <strong>' + d.emetteurNom + '</strong></div>' +
+                        '<div>Saisissez l\'opportunité ou refusez.</div>' +
+                        '<small style="color:var(--danger)">⚠️ Un refus entraîne une taxe de 20 €</small>' +
                         '<div class="demande-actions">' +
-                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter le risque</button>' +
                         '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser (-20 €)</button>' +
                         '</div>';
                 } else if (d.type === "Événement Roue") {
-                    const lot = d.estJoker ? "1 Joker 🃏" : d.montant + " € 💰";
-                    item.innerHTML = '<div><strong>🎡 Roue de la Fortune pour ' + d.emetteurNom + '</strong></div>' +
-                        '<div>Gain proposé : <strong>' + lot + '</strong></div>' +
-                        '<small style="color:var(--danger)">Un refus entraîne une taxe de 20 €</small>' +
+                    item.innerHTML = '<div><strong>🎡 Roue de la Fortune</strong> pour <strong>' + d.emetteurNom + '</strong></div>' +
+                        '<div>Tournez la roue pour découvrir votre lot !</div>' +
+                        '<small style="color:var(--danger)">⚠️ Un refus entraîne une taxe de 20 €</small>' +
                         '<div class="demande-actions">' +
-                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Tourner la roue</button>' +
                         '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser (-20 €)</button>' +
                         '</div>';
                 } else {
@@ -1072,47 +1094,30 @@
 
                 const joueurTarget = window.localJoueurs[d.emetteurId];
 
-                // --- GESTION DES ÉVÉNEMENTS BOURSE ET ROUE ---
-                if (d.type === "Événement Bourse" || d.type === "Événement Roue") {
+                if (d.type === "Événement Bourse") {
                     if (!verifierPin(d.emetteurId)) return alert("Code PIN incorrect !");
 
                     if (accepter) {
-                        if (d.type === "Événement Bourse") {
-                            const soldeActuel = joueurTarget.solde || 0;
-                            const nouveauSolde = d.estGain ? (soldeActuel + d.montant) : Math.max(0, soldeActuel - d.montant);
-                            joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: nouveauSolde });
-
-                            histoRef.push({
-                                texte: '📈 BOURSE ACCEPTEE : ' + d.emetteurNom + (d.estGain ? ' gagne +' : ' perd -') + d.montant + ' €',
-                                date: new Date().toLocaleTimeString('fr-FR')
-                            });
-                        } else if (d.type === "Événement Roue") {
-                            if (d.estJoker) {
-                                const jokersActuels = joueurTarget.jokers || 0;
-                                if (jokersActuels < 2) {
-                                    joueursRef.child(d.emetteurId).update({ jokers: jokersActuels + 1 });
-                                    histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' reçoit 1 Joker 🃏', date: new Date().toLocaleTimeString('fr-FR') });
-                                } else {
-                                    const soldeActuel = joueurTarget.solde || 0;
-                                    joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 50 });
-                                    histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' (Jokers max) reçoit 50 €', date: new Date().toLocaleTimeString('fr-FR') });
-                                }
-                            } else {
-                                const soldeActuel = joueurTarget.solde || 0;
-                                joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel + d.montant });
-                                histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' gagne ' + d.montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
-                            }
-                        }
-                    } else {
-                        // TAXE DE 20€ SI REFUS
                         const soldeActuel = joueurTarget.solde || 0;
-                        joueursRef.child(d.emetteurId).update({
-                            ancienSolde: soldeActuel,
-                            solde: soldeActuel - 20
-                        });
+                        const estGain = Math.random() < 0.50;
+                        const pourcentage = Math.floor(Math.random() * 9 + 1) * 10;
+                        const variation = Math.round(soldeActuel * (pourcentage / 100));
+
+                        const nouveauSolde = estGain ? (soldeActuel + variation) : Math.max(0, soldeActuel - variation);
+                        joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: nouveauSolde });
+
+                        const signe = estGain ? "+" : "-";
+                        alert("📈 BOURSE RESULTAT :\n\n" + (estGain ? "🎉 Félicitations !" : "📉 Pas de chance...") + "\nVotre solde varie de " + signe + pourcentage + "% (" + signe + variation + " €) !");
 
                         histoRef.push({
-                            texte: '🚫 REFUS (' + d.type + ') : ' + d.emetteurNom + ' a refusé l\'événement et paie une taxe de 20 €',
+                            texte: '📈 BOURSE : ' + d.emetteurNom + ' a accepté la bourse (' + signe + pourcentage + '% | ' + signe + variation + ' €)',
+                            date: new Date().toLocaleTimeString('fr-FR')
+                        });
+                    } else {
+                        const soldeActuel = joueurTarget.solde || 0;
+                        joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel - 20 });
+                        histoRef.push({
+                            texte: '🚫 BOURSE REFUSEE : ' + d.emetteurNom + ' a refusé et paie une taxe de 20 €',
                             date: new Date().toLocaleTimeString('fr-FR')
                         });
                     }
@@ -1121,7 +1126,25 @@
                     return;
                 }
 
-                // --- GESTION DES PRÊTS ET VIREMENTS TRADITIONNELS ---
+                if (d.type === "Événement Roue") {
+                    if (!verifierPin(d.emetteurId)) return alert("Code PIN incorrect !");
+
+                    if (accepter) {
+                        activeRoueDemandeId = id;
+                        ouvrirModalRoue(joueurTarget.nom);
+                        return;
+                    } else {
+                        const soldeActuel = joueurTarget.solde || 0;
+                        joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel - 20 });
+                        histoRef.push({
+                            texte: '🚫 ROUE REFUSEE : ' + d.emetteurNom + ' a refusé le tirage et paie 20 € de taxe',
+                            date: new Date().toLocaleTimeString('fr-FR')
+                        });
+                        demandesRef.child(id).remove();
+                        return;
+                    }
+                }
+
                 if (accepter) {
                     if (d.type === "Emprunt") {
                         const tauxApplique = (d.destId === "BANQUE") ? 50 : (d.taux || 0);
@@ -1219,6 +1242,133 @@
 
                 demandesRef.child(id).remove();
             });
+        }
+
+        /* --- SCRIPT & ANIMATION DE LA ROUE --- */
+        const wheelSectors = [
+            { label: "❌ PERTE JOKER", color: "#dc2626", type: "perte_joker", val: 0 },
+            { label: "🃏 JOKER", color: "#8b5cf6", type: "joker", val: 0 },
+            { label: "-30 €", color: "#ef4444", type: "perte_euro", val: 30 },
+            { label: "+20 €", color: "#10b981", type: "euro", val: 20 },
+            { label: "+50 €", color: "#f59e0b", type: "euro", val: 50 },
+            { label: "+30 €", color: "#06b6d4", type: "euro", val: 30 }
+        ];
+
+        function dessinerRoue() {
+            const svg = document.getElementById('wheel-svg');
+            svg.innerHTML = '';
+            const totalSectors = wheelSectors.length;
+            const anglePerSector = 360 / totalSectors;
+
+            wheelSectors.forEach((sector, i) => {
+                const startAngle = i * anglePerSector;
+                const endAngle = (i + 1) * anglePerSector;
+
+                const x1 = 100 + 95 * Math.cos(Math.PI * (startAngle - 90) / 180);
+                const y1 = 100 + 95 * Math.sin(Math.PI * (startAngle - 90) / 180);
+                const x2 = 100 + 95 * Math.cos(Math.PI * (endAngle - 90) / 180);
+                const y2 = 100 + 95 * Math.sin(Math.PI * (endAngle - 90) / 180);
+
+                const pathData = `M 100 100 L ${x1} ${y1} A 95 95 0 0 1 ${x2} ${y2} Z`;
+
+                const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+                path.setAttribute("d", pathData);
+                path.setAttribute("fill", sector.color);
+                svg.appendChild(path);
+
+                const textAngle = startAngle + anglePerSector / 2;
+                const tx = 100 + 65 * Math.cos(Math.PI * (textAngle - 90) / 180);
+                const ty = 100 + 65 * Math.sin(Math.PI * (textAngle - 90) / 180);
+
+                const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+                text.setAttribute("x", tx);
+                text.setAttribute("y", ty);
+                text.setAttribute("fill", "white");
+                text.setAttribute("font-size", "10");
+                text.setAttribute("font-weight", "bold");
+                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("dominant-baseline", "central");
+                text.setAttribute("transform", `rotate(${textAngle}, ${tx}, ${ty})`);
+                text.textContent = sector.label;
+                svg.appendChild(text);
+            });
+        }
+
+        function ouvrirModalRoue(nomJoueur) {
+            document.getElementById('roue-joueur-nom').textContent = "Tirage pour : " + nomJoueur;
+            document.getElementById('roue-resultat-texte').textContent = "";
+            document.getElementById('btn-tourner-roue').style.display = "block";
+            document.getElementById('wheel-svg').style.transform = "rotate(0deg)";
+            dessinerRoue();
+            document.getElementById('modal-roue').style.display = "flex";
+        }
+
+        function lancerAnimationRoue() {
+            if (!activeRoueDemandeId) return;
+
+            const btn = document.getElementById('btn-tourner-roue');
+            btn.style.display = "none";
+
+            const sectorCount = wheelSectors.length;
+            const chosenIndex = Math.floor(Math.random() * sectorCount);
+            const anglePerSector = 360 / sectorCount;
+
+            const targetAngle = 360 - (chosenIndex * anglePerSector + anglePerSector / 2);
+            const totalRotation = (360 * 5) + targetAngle;
+
+            const wheelSvg = document.getElementById('wheel-svg');
+            wheelSvg.style.transform = `rotate(${totalRotation}deg)`;
+
+            setTimeout(() => {
+                const lot = wheelSectors[chosenIndex];
+                document.getElementById('roue-resultat-texte').textContent = "Résultat : " + lot.label;
+
+                demandesRef.child(activeRoueDemandeId).once('value', snapshot => {
+                    const d = snapshot.val();
+                    if (d) {
+                        const joueurTarget = window.localJoueurs[d.emetteurId];
+                        if (joueurTarget) {
+                            if (lot.type === "perte_joker") {
+                                const jokersActuels = joueurTarget.jokers || 0;
+                                if (jokersActuels > 0) {
+                                    joueursRef.child(d.emetteurId).update({ jokers: jokersActuels - 1 });
+                                    histoRef.push({ texte: '🎡 ROUE : ❌ ' + d.emetteurNom + ' perd 1 Joker !', date: new Date().toLocaleTimeString('fr-FR') });
+                                } else {
+                                    const soldeActuel = joueurTarget.solde || 0;
+                                    joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel - 30 });
+                                    histoRef.push({ texte: '🎡 ROUE : ❌ ' + d.emetteurNom + ' n\'a pas de Joker et perd 30 € !', date: new Date().toLocaleTimeString('fr-FR') });
+                                }
+                            } else if (lot.type === "perte_euro") {
+                                const soldeActuel = joueurTarget.solde || 0;
+                                joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel - 30 });
+                                histoRef.push({ texte: '🎡 ROUE : 📉 ' + d.emetteurNom + ' perd 30 € !', date: new Date().toLocaleTimeString('fr-FR') });
+                            } else if (lot.type === "joker") {
+                                const jokersActuels = joueurTarget.jokers || 0;
+                                if (jokersActuels < 2) {
+                                    joueursRef.child(d.emetteurId).update({ jokers: jokersActuels + 1 });
+                                    histoRef.push({ texte: '🎡 ROUE : 🎉 ' + d.emetteurNom + ' gagne 1 Joker 🃏 !', date: new Date().toLocaleTimeString('fr-FR') });
+                                } else {
+                                    const soldeActuel = joueurTarget.solde || 0;
+                                    joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 50 });
+                                    histoRef.push({ texte: '🎡 ROUE : 🎉 ' + d.emetteurNom + ' (Jokers max) reçoit 50 €', date: new Date().toLocaleTimeString('fr-FR') });
+                                }
+                            } else {
+                                const soldeActuel = joueurTarget.solde || 0;
+                                joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel + lot.val });
+                                histoRef.push({ texte: '🎡 ROUE : 🎉 ' + d.emetteurNom + ' gagne ' + lot.val + ' € 💰', date: new Date().toLocaleTimeString('fr-FR') });
+                            }
+                        }
+                        demandesRef.child(activeRoueDemandeId).remove();
+                        activeRoueDemandeId = null;
+                    }
+                });
+
+                setTimeout(() => {
+                    document.getElementById('modal-roue').style.display = "none";
+                    enregistrerActionEtVerifierEvenements();
+                }, 2500);
+
+            }, 4000);
         }
 
         let rawHistoData = {};
