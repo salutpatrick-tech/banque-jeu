@@ -3,20 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MonopMonney - Gestionnaire Financier</title>
-    <!-- Firebase SDK 8.10.1 -->
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <title>MonopMonney - Banque du Jeu</title>
     <style>
         :root {
             --primary: #2563eb;
-            --primary-hover: #1d4ed8;
+            --primary-dark: #1d4ed8;
             --bg: #f8fafc;
             --card-bg: #ffffff;
-            --text: #0f172a;
+            --text: #1e293b;
             --border: #e2e8f0;
             --danger: #ef4444;
-            --success: #10b981;
+            --success: #22c55e;
+            --warning: #f59e0b;
         }
 
         body {
@@ -24,79 +22,181 @@
             background-color: var(--bg);
             color: var(--text);
             margin: 0;
-            padding: 20px;
-            display: flex;
-            justify-content: center;
+            padding: 12px;
+            padding-bottom: 70px;
         }
 
         .container {
-            width: 100%;
-            max-width: 800px;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 16px;
+        }
+
+        h1 {
+            margin: 0 0 6px 0;
+            font-size: 1.5rem;
+        }
+
+        .admin-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            background-color: #e2e8f0;
+            color: #64748b;
+        }
+
+        .admin-badge.active {
+            background-color: #dcfce7;
+            color: #15803d;
+        }
+
+        .bonus-banner {
+            background: linear-gradient(135deg, #059669, #10b981);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            text-align: center;
+            font-weight: bold;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: none;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+        }
+
+        .nav-tabs {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
             display: flex;
-            flex-direction: column;
-            gap: 20px;
+            background-color: #ffffff;
+            border-top: 1px solid var(--border);
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+            z-index: 1000;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 4px;
+            border: none;
+            background: none;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #64748b;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .tab-btn.active {
+            color: var(--primary);
+            border-top: 3px solid var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
         }
 
         .card {
             background: var(--card-bg);
-            border: 1px solid var(--border);
             border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            padding: 16px;
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
         }
 
-        h1, h2, h3 {
+        h2 {
+            font-size: 1.1rem;
             margin-top: 0;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
 
-        .btn {
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 10px;
+            margin-bottom: 4px;
+        }
+
+        input, select, button {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-sizing: border-box;
+            font-size: 0.95rem;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        button {
             background-color: var(--primary);
             color: white;
             border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
+            font-weight: 600;
+            margin-top: 12px;
             cursor: pointer;
-            font-weight: 500;
         }
 
-        .btn:hover {
-            background-color: var(--primary-hover);
+        button:active {
+            opacity: 0.9;
         }
 
         .btn-danger { background-color: var(--danger); }
+        .btn-success { background-color: var(--success); }
+        .btn-warning { background-color: var(--warning); color: black; }
+
         .btn-danger-sm {
             background-color: var(--danger);
             color: white;
             border: none;
             padding: 4px 8px;
-            border-radius: 4px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            width: auto;
+            margin: 0;
             cursor: pointer;
-            font-size: 12px;
         }
 
         .btn-edit-sm {
-            background-color: #f59e0b;
-            color: white;
+            background-color: var(--warning);
+            color: black;
             border: none;
             padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 12px;
-            margin-right: 4px;
-        }
-
-        input, select {
-            width: 100%;
-            padding: 8px 12px;
-            margin: 8px 0;
-            border: 1px solid var(--border);
             border-radius: 6px;
-            box-sizing: border-box;
+            font-size: 0.8rem;
+            width: auto;
+            margin: 0 4px;
+            cursor: pointer;
+            font-weight: bold;
         }
 
         ul {
             list-style: none;
             padding: 0;
+            margin: 0;
         }
 
         li {
@@ -107,225 +207,1295 @@
             align-items: center;
         }
 
-        .histo-annule {
-            text-decoration: line-through;
-            opacity: 0.5;
+        li:last-child {
+            border-bottom: none;
         }
 
-        /* Modal styling */
-        .modal {
+        .solde {
+            font-weight: bold;
+            color: var(--success);
+        }
+
+        .ancien-solde {
+            font-size: 0.8rem;
+            color: #64748b;
+            text-decoration: line-through;
+            margin-left: 6px;
+        }
+
+        .dette-tag {
+            color: var(--danger);
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin-top: 2px;
+        }
+
+        .taux-banque-info {
+            background-color: #f1f5f9;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: var(--primary-dark);
+            margin-bottom: 12px;
+        }
+
+        .badge-joker {
+            font-size: 0.8rem;
+            color: #8b5cf6;
+            font-weight: bold;
+        }
+
+        .chrono-banner {
+            background: linear-gradient(135deg, #1e1b4b, #312e81);
+            color: #ffffff;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+            text-align: center;
+            border: 2px solid #6366f1;
+        }
+
+        .chrono-title {
+            font-size: 1rem;
+            font-weight: bold;
+            margin-bottom: 8px;
+            color: #a5b4fc;
+        }
+
+        .chrono-display {
+            display: flex;
+            justify-content: center;
+            gap: 12px;
+            margin: 12px 0;
+        }
+
+        .chrono-unit {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 8px 12px;
+            border-radius: 8px;
+            min-width: 45px;
+        }
+
+        .chrono-number {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        .chrono-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            color: #c7d2fe;
+        }
+
+        .modal-edit {
             display: none;
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.5);
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0, 0, 0, 0.85);
+            z-index: 2000;
             justify-content: center;
             align-items: center;
+            padding: 16px;
         }
 
-        .modal-content {
+        .modal-edit-content {
             background: white;
-            padding: 24px;
-            border-radius: 12px;
-            width: 90%;
+            border-radius: 16px;
+            padding: 20px;
             max-width: 400px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
+        }
+
+        .admin-only { display: none; }
+
+        .demande-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .demande-actions {
+            display: flex;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .histo-annule {
+            text-decoration: line-through;
+            color: #94a3b8 !important;
         }
     </style>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 </head>
 <body>
 
-<div class="container">
-    <h1>MonopMonney</h1>
+    <div class="container">
+        <header>
+            <h1>🏦 MonopMonney - Banque du Jeu</h1>
+            <span id="admin-badge" class="admin-badge">🔒 Mode Joueur</span>
+        </header>
 
-    <!-- SECTION AUTHENTIFICATION ADMIN -->
-    <div class="card" id="admin-auth-card">
-        <h2>Espace Administration</h2>
-        <div id="admin-login-form">
-            <input type="password" id="admin-pin-input" placeholder="Entrez le code PIN Admin">
-            <button class="btn" onclick="verifierPinAdmin()">Se connecter en Admin</button>
+        <!-- BANDEAU BONUS CONNEXION SURPRISE -->
+        <div id="bonus-banner" class="bonus-banner">
+            🎁 <span id="bonus-texte">Un bonus vient d'être distribué !</span>
         </div>
-        <div id="admin-controls" style="display: none;">
-            <p><strong>Statut :</strong> Connecté en tant qu'Administrateur</p>
-            <button class="btn btn-danger" onclick="deconnexionAdmin()">Déconnexion Admin</button>
-            <hr>
-            <h3>Actions d'administration BDD</h3>
-            <button class="btn" onclick="changerPinAdmin()">Changer le code PIN Admin</button>
-            <button class="btn" onclick="exporterSauvegardeBDD()">Sauvegarder la BDD (Export JSON)</button>
-            <input type="file" id="import-json-file" accept=".json" style="display:none" onchange="importerSauvegardeBDD(event)">
-            <button class="btn btn-danger" onclick="document.getElementById('import-json-file').click()">Restaurer la BDD (Import JSON)</button>
+
+        <div id="chrono-banner" class="chrono-banner" style="display: none;">
+            <div id="chrono-description" class="chrono-title">⏱️ Défi en cours</div>
+            <div class="chrono-display">
+                <div class="chrono-unit"><div id="t-jours" class="chrono-number">0</div><div class="chrono-label">Jours</div></div>
+                <div class="chrono-unit"><div id="t-heures" class="chrono-number">00</div><div class="chrono-label">Heures</div></div>
+                <div class="chrono-unit"><div id="t-minutes" class="chrono-number">00</div><div class="chrono-label">Min</div></div>
+                <div class="chrono-unit"><div id="t-secondes" class="chrono-number">00</div><div class="chrono-label">Sec</div></div>
+            </div>
+        </div>
+
+        <div id="tab-banque" class="tab-content active">
+            <div class="taux-banque-info">
+                📊 Taux d'intérêt des prêts de la Banque : <strong>50 %</strong>
+            </div>
+
+            <div class="card">
+                <h2>👥 Comptes des Joueurs</h2>
+                <ul id="liste-joueurs">
+                    <li>Chargement des données...</li>
+                </ul>
+            </div>
+
+            <div class="card">
+                <h2>💸 Effectuer une Transaction</h2>
+                <label for="transac-joueur">Joueur :</label>
+                <select id="transac-joueur">
+                    <option value="">Sélectionner un joueur</option>
+                </select>
+
+                <label for="transac-type">Type d'opération :</label>
+                <select id="transac-type">
+                    <option value="depot">Dépôt (+)</option>
+                    <option value="retrait">Retrait (-)</option>
+                    <option value="joker">Utiliser un Joker (Consommation)</option>
+                </select>
+
+                <label for="transac-montant">Montant (€) :</label>
+                <input type="number" id="transac-montant" placeholder="Ex: 50" min="1">
+
+                <button onclick="validerTransaction()">Valider la transaction</button>
+            </div>
+        </div>
+
+        <div id="tab-demandes" class="tab-content">
+            <div class="card">
+                <label for="demande-emetteur">Votre nom (débiteur) :</label>
+                <select id="demande-emetteur">
+                    <option value="">Sélectionner votre nom</option>
+                </select>
+
+                <label for="demande-destinataire">Destinataire (Joueur ou Banque) :</label>
+                <select id="demande-destinataire" onchange="gererAffichageTaux()">
+                    <option value="BANQUE">🏦 La Banque (Taux fixe 50%)</option>
+                </select>
+
+                <label for="demande-type">Type :</label>
+                <select id="demande-type">
+                    <option value="Emprunt">Demande d'emprunt</option>
+                    <option value="Virement">Virement entre joueurs</option>
+                    <option value="Autre">Autre demande</option>
+                </select>
+
+                <label for="demande-montant">Montant (€) :</label>
+                <input type="number" id="demande-montant" placeholder="Montant">
+
+                <div id="box-taux" style="display: none;">
+                    <label for="demande-taux">Taux d'intérêt proposé par le prêteur (%) :</label>
+                    <input type="number" id="demande-taux" placeholder="Ex: 10" min="0">
+                </div>
+
+                <button onclick="soumettreDemande()">Envoyer la demande</button>
+            </div>
+
+            <div class="card">
+                <h2>📋 Demandes & Événements en cours</h2>
+                <div id="liste-demandes">
+                    <p>Aucune demande active.</p>
+                </div>
+            </div>
+        </div>
+
+        <div id="tab-historique" class="tab-content">
+            <div class="card">
+                <h2>📜 Historique Général</h2>
+                <ul id="historique-liste">
+                    <li>Chargement de l'historique...</li>
+                </ul>
+            </div>
+        </div>
+
+        <div id="tab-admin" class="tab-content">
+            <div class="card">
+                <h2>🔑 Mode Administrateur</h2>
+                <div id="admin-auth-box">
+                    <label for="admin-pin">Mot de passe Admin :</label>
+                    <input type="password" id="admin-pin" placeholder="Entrez le code admin">
+                    <button onclick="connexionAdmin()">Se connecter</button>
+                </div>
+                <div id="admin-actions" class="admin-only">
+                    <p style="color: var(--success); font-weight: bold; margin-bottom: 12px;">Vous êtes connecté en tant qu'administrateur.</p>
+                    <button class="btn-danger" onclick="deconnexionAdmin()">Se déconnecter</button>
+                </div>
+            </div>
+
+            <div class="card admin-only">
+                <h2>🔄 Gestion Directe des Soldes & Dettes</h2>
+                <button class="btn-warning" onclick="resetDettes()">💸 Remettre à zéro TOUTES les dettes</button>
+                <button class="btn-warning" onclick="resetSoldes()" style="margin-top: 8px;">💰 Remettre à zéro TOUS les soldes (0 €)</button>
+                
+                <hr style="margin: 16px 0; border: 0; border-top: 1px solid var(--border);">
+
+                <label for="admin-joueur-solde">Joueur concerné :</label>
+                <select id="admin-joueur-solde">
+                    <option value="">Sélectionner un joueur</option>
+                </select>
+
+                <label for="admin-nouveau-solde">Fixer / Ajouter un solde (€) :</label>
+                <input type="number" id="admin-nouveau-solde" placeholder="Ex: 500 pour définir à 500€">
+
+                <div style="display: flex; gap: 8px;">
+                    <button onclick="definirNouveauSoldeAdmin()" class="btn-success">🎯 Définir ce solde</button>
+                    <button onclick="ajouterMontantSoldeAdmin()" class="btn-warning">➕ Ajouter ce montant</button>
+                </div>
+            </div>
+
+            <div class="card admin-only">
+                <h2>🔐 Modifier le Mot de Passe Admin</h2>
+                <label for="nouveau-pin-admin">Nouveau Mot de Passe Admin :</label>
+                <input type="password" id="nouveau-pin-admin" placeholder="Entrez le nouveau code">
+                <button onclick="changerPinAdmin()">Mettre à jour le mot de passe</button>
+            </div>
+
+            <div class="card admin-only">
+                <h2>💾 Base de Données (Sauvegarde & Restauration)</h2>
+                <button type="button" class="btn-success" onclick="sauvegarderBDD()" style="margin-bottom: 12px;">
+                    📥 Télécharger la sauvegarde (JSON)
+                </button>
+                <input type="file" id="importFile" accept=".json" style="display: none;" onchange="restaurerBDD(event)">
+                <button type="button" class="btn-danger" onclick="document.getElementById('importFile').click()">
+                    📤 Importer / Restaurer une sauvegarde
+                </button>
+            </div>
+
+            <div class="card admin-only">
+                <h2>🎡 Roue de la Fortune Quotidienne</h2>
+                <p id="admin-roue-statut">Statut : Chargement...</p>
+                <button onclick="forcerResetRoueJour()">Reset tirage du jour</button>
+            </div>
+
+            <div class="card admin-only">
+                <h2>➕ Ajouter un Joueur</h2>
+                <label for="nouveau-nom">Nom du Joueur :</label>
+                <input type="text" id="nouveau-nom" placeholder="Ex: Marie">
+                <label for="nouveau-pin">Code PIN (4 chiffres) :</label>
+                <input type="password" id="nouveau-pin" placeholder="Ex: 1234" maxlength="4">
+                <button onclick="creerJoueur()">Créer le joueur</button>
+            </div>
+
+            <div class="card admin-only">
+                <h2>⏱️ Configurer un Chronomètre</h2>
+                <label for="chrono-desc">Description du Défi / Minuteur :</label>
+                <input type="text" id="chrono-desc" placeholder="Ex: Fin du tour de jeu">
+                <label for="chrono-date">Date et Heure de fin :</label>
+                <input type="datetime-local" id="chrono-date">
+                <button onclick="lancerChrono()">Lancer le Chronomètre</button>
+                <button class="btn-danger" onclick="arreterChrono()" style="margin-top: 8px;">Arrêter le Chronomètre</button>
+            </div>
         </div>
     </div>
 
-    <!-- SECTION ROUET & ÉVÉNEMENTS -->
-    <div class="card">
-        <h2>Roulette & Opportunités Boursières</h2>
-        <button class="btn" onclick="lancerRoue()">Tourner la Roue</button>
-        <div id="roue-resultat" style="margin-top: 10px; font-weight: bold;"></div>
-    </div>
+    <!-- MODAL EDITION TRANSACTION (ADMIN) -->
+    <div id="modal-edit" class="modal-edit">
+        <div class="modal-edit-content">
+            <h3 style="margin-top:0; color: var(--primary-dark);">⚙️ Modifier ou Annuler</h3>
+            <p id="edit-texte-actuel" style="font-size:0.85rem; color:#64748b; margin-bottom:12px;"></p>
+            
+            <input type="hidden" id="edit-histo-id">
 
-    <!-- SECTION HISTORIQUE DES TRANSACTIONS -->
-    <div class="card">
-        <h2>Historique des Transactions</h2>
-        <ul id="historique-liste"></ul>
-    </div>
-</div>
+            <label for="edit-joueur-cible">Joueur concerné :</label>
+            <select id="edit-joueur-cible"></select>
 
-<!-- MODAL EDITION TRANSACTION -->
-<div class="modal" id="modal-edit">
-    <div class="modal-content">
-        <h3>Éditer la transaction</h3>
-        <input type="text" id="edit-texte-input" placeholder="Texte de la transaction">
-        <div style="display:flex; justify-flex-end; gap: 8px; margin-top: 12px;">
-            <button class="btn" onclick="sauvegarderEditHisto()">Enregistrer</button>
-            <button class="btn btn-danger" onclick="fermerModalEdit()">Annuler</button>
+            <label for="edit-nouveau-montant">Nouveau montant (€) :</label>
+            <input type="number" id="edit-nouveau-montant" placeholder="Entrez le nouveau montant">
+
+            <button onclick="validerModificationHisto()" class="btn-warning" style="margin-top: 12px;">✏️ Enregistrer le nouveau montant</button>
+            <button onclick="annulerTransactionHisto()" class="btn-danger" style="margin-top: 8px;">🚫 Annuler totalement la transaction</button>
+            <button onclick="fermerModalEdit()" style="background: #94a3b8; margin-top: 8px;">Fermer</button>
         </div>
     </div>
-</div>
 
-<script>
-    // Configuration Firebase
-    const firebaseConfig = {
-        apiKey: "VOTRE_API_KEY",
-        authDomain: "VOTRE_AUTH_DOMAIN",
-        databaseURL: "VOTRE_DATABASE_URL",
-        projectId: "VOTRE_PROJECT_ID",
-        storageBucket: "VOTRE_STORAGE_BUCKET",
-        messagingSenderId: "VOTRE_SENDER_ID",
-        appId: "VOTRE_APP_ID"
-    };
+    <nav class="nav-tabs">
+        <button class="tab-btn active" onclick="changerOnglet('banque', this)">🏦 Banque</button>
+        <button class="tab-btn" onclick="changerOnglet('demandes', this)">📩 Demandes</button>
+        <button class="tab-btn" onclick="changerOnglet('historique', this)">📜 Historique</button>
+        <button class="tab-btn" onclick="changerOnglet('admin', this)">⚙️ Admin</button>
+    </nav>
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
-    const joueursRef = db.ref('joueurs');
-    const histoRef = db.ref('historique');
-    const configRef = db.ref('config');
+    <script>
+        const firebaseConfig = {
+            apiKey: "AiZaSyBzJugWBBzfzpgelCAGNAjycBMZv64WHbc",
+            authDomain: "banque-jeu.firebaseapp.com",
+            databaseURL: "https://banque-jeu-default-rtdb.europe-west1.firebasedatabase.app",
+            projectId: "banque-jeu",
+            storageBucket: "banque-jeu.firebasestorage.app",
+            messagingSenderId: "333582703295",
+            appId: "1:333582703295:web:aedbdfe4fe3ecd1ed8c40a"
+        };
 
-    window.isAdmin = false;
-    let editKeyActuelle = null;
+        if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+        const db = firebase.database();
 
-    // Synchronisation de l'historique en temps réel
-    histoRef.on('value', (snapshot) => {
-        const data = snapshot.val() || {};
-        actualiserHistoriqueUI(data);
-    });
+        const joueursRef = db.ref('joueurs');
+        const histoRef = db.ref('historique');
+        const demandesRef = db.ref('demandes');
+        const chronoRef = db.ref('config/chrono');
+        const roueRef = db.ref('config/roueQuotidienne');
+        const adminPinRef = db.ref('config/adminPin');
+        const bonusConnexionRef = db.ref('config/bonusConnexion');
 
-    // Gestion Connexion Admin
-    function verifierPinAdmin() {
-        const pinSaisi = document.getElementById('admin-pin-input').value;
-        configRef.child('adminPin').once('value').then(snapshot => {
-            const pinCorrect = snapshot.val() || "1234";
-            if (pinSaisi === pinCorrect) {
-                window.isAdmin = true;
-                document.getElementById('admin-login-form').style.display = 'none';
-                document.getElementById('admin-controls').style.display = 'block';
-                histoRef.once('value', s => actualiserHistoriqueUI(s.val() || {}));
-            } else {
-                alert("Code PIN Incorrect !");
+        window.localJoueurs = {};
+        window.isAdmin = false;
+        let currentAdminPin = "1234";
+        let chronoInterval = null;
+
+        adminPinRef.on('value', snapshot => {
+            const val = snapshot.val();
+            if (val) currentAdminPin = val;
+        });
+
+        /* --- BONUS DE CONNEXION ALEATOIRE --- */
+        bonusConnexionRef.on('value', snapshot => {
+            const data = snapshot.val() || {};
+            if (data.message) {
+                document.getElementById('bonus-banner').style.display = 'block';
+                document.getElementById('bonus-texte').innerHTML = data.message;
             }
         });
-    }
 
-    function deconnexionAdmin() {
-        window.isAdmin = false;
-        document.getElementById('admin-login-form').style.display = 'block';
-        document.getElementById('admin-controls').style.display = 'none';
-        document.getElementById('admin-pin-input').value = '';
-        histoRef.once('value', s => actualiserHistoriqueUI(s.val() || {}));
-    }
+        function tenterBonusConnexionAleatoire() {
+            if (sessionStorage.getItem('bonusTente')) return;
+            sessionStorage.setItem('bonusTente', 'true');
 
-    function changerPinAdmin() {
-        const nouveauPin = prompt("Entrez le nouveau code PIN Admin :");
-        if (nouveauPin && nouveauPin.trim() !== "") {
-            configRef.update({ adminPin: nouveauPin.trim() });
-            alert("Code PIN mis à jour avec succès.");
+            if (Math.random() > 0.33) return;
+
+            joueursRef.once('value', snapshot => {
+                const joueursData = snapshot.val() || {};
+                const listeIds = Object.keys(joueursData);
+                if (listeIds.length === 0) return;
+
+                const randomId = listeIds[Math.floor(Math.random() * listeIds.length)];
+                const gagnant = joueursData[randomId];
+
+                const estJoker = Math.random() < 0.20;
+                let messageBonus = "";
+
+                if (estJoker) {
+                    const jokersActuels = gagnant.jokers || 0;
+                    if (jokersActuels < 2) {
+                        joueursRef.child(randomId).update({ jokers: jokersActuels + 1 });
+                        messageBonus = '🎁 BONUS DE CONNEXION : 🃏 <strong>' + gagnant.nom + '</strong> gagne 1 JOKER !';
+                    } else {
+                        const soldeActuel = gagnant.solde || 0;
+                        joueursRef.child(randomId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 25 });
+                        messageBonus = '🎁 BONUS DE CONNEXION : 💰 <strong>' + gagnant.nom + '</strong> gagne 25 € !';
+                    }
+                } else {
+                    const gainEuro = Math.floor(Math.random() * 5 + 1) * 10;
+                    const soldeActuel = gagnant.solde || 0;
+                    joueursRef.child(randomId).update({ ancienSolde: soldeActuel, solde: soldeActuel + gainEuro });
+                    messageBonus = '🎁 BONUS DE CONNEXION : 💰 <strong>' + gagnant.nom + '</strong> gagne <strong>' + gainEuro + ' €</strong> !';
+                }
+
+                bonusConnexionRef.set({ message: messageBonus, timestamp: Date.now() });
+                histoRef.push({ texte: messageBonus, date: new Date().toLocaleTimeString('fr-FR') });
+            });
         }
-    }
 
-    // Affichage de l'historique (CORRIGÉ : window.isAdmin)
-    function actualiserHistoriqueUI(rawHistoData) {
-        const conteneur = document.getElementById('historique-liste');
-        conteneur.innerHTML = '';
-        const keys = Object.keys(rawHistoData).reverse();
+        tenterBonusConnexionAleatoire();
 
-        keys.forEach(k => {
-            const h = rawHistoData[k];
-            const estAnnule = h.annule === true;
+        roueRef.on('value', snapshot => {
+            const localRoueConfig = snapshot.val() || {};
+            const el = document.getElementById('admin-roue-statut');
+            if (!el) return;
 
-            const li = document.createElement('li');
-            li.innerHTML = '<span class="' + (estAnnule ? 'histo-annule' : '') + '">' + h.texte + ' <small style="color: #64748b; margin-left:8px;">' + (h.date || '') + '</small></span>' +
-                '<div>' +
-                (window.isAdmin && !estAnnule ? '<button class="btn-edit-sm" onclick="ouvrirModalEdit(\'' + k + '\', \'' + h.texte.replace(/'/g, "\\'") + '\')">✏️ Éditer</button>' : '') +
-                (window.isAdmin ? '<button class="btn-danger-sm" onclick="supprimerLigneHisto(\'' + k + '\')">🗑️</button>' : '') +
-                '</div>';
-            conteneur.appendChild(li);
+            const dateToday = new Date().toLocaleDateString('fr-FR');
+            if (!localRoueConfig.date || localRoueConfig.date !== dateToday) {
+                el.innerHTML = "Statut : <strong>Aucun tirage aujourd'hui</strong> (" + dateToday + ")";
+            } else if (localRoueConfig.tire) {
+                let gagnantNom = "Joueur";
+                if (localRoueConfig.joueurGagnantId && window.localJoueurs[localRoueConfig.joueurGagnantId]) {
+                    gagnantNom = window.localJoueurs[localRoueConfig.joueurGagnantId].nom;
+                }
+                el.innerHTML = "Statut : 🎯 <strong>Tirage effectué</strong> pour <strong>" + gagnantNom + "</strong>";
+            } else {
+                el.innerHTML = "Statut : ⏳ <strong>Tirage en cours</strong> (Actions : " + (localRoueConfig.nbActions || 0) + "/3)";
+            }
         });
-    }
 
-    // Modal d'édition
-    function ouvrirModalEdit(key, texteActuel) {
-        editKeyActuelle = key;
-        document.getElementById('edit-texte-input').value = texteActuel;
-        document.getElementById('modal-edit').style.display = 'flex';
-    }
+        function forcerResetRoueJour() {
+            if (!window.isAdmin) return;
+            const dateToday = new Date().toLocaleDateString('fr-FR');
+            roueRef.set({ date: dateToday, nbActions: 0, tire: false, joueurGagnantId: null })
+                .then(() => alert("Le tirage de la roue a été réinitialisé !"));
+        }
 
-    function fermerModalEdit() {
-        editKeyActuelle = null;
-        document.getElementById('modal-edit').style.display = 'none';
-    }
+        /* --- LOGIQUE DES ÉVÉNEMENTS ALEATOIRES AVEC VALIDATION/REFUS --- */
+        function enregistrerActionEtVerifierEvenements() {
+            const dateToday = new Date().toLocaleDateString('fr-FR');
+            
+            // 1. Opportunité Boursière
+            if (Math.random() < 0.50) {
+                const listeIds = Object.keys(window.localJoueurs);
+                if (listeIds.length > 0) {
+                    const randomId = listeIds[Math.floor(Math.random() * listeIds.length)];
+                    const joueur = window.localJoueurs[randomId];
+                    const soldeActuel = joueur.solde || 0;
 
-    function sauvegarderEditHisto() {
-        if (!editKeyActuelle) return;
-        const nouveauTexte = document.getElementById('edit-texte-input').value;
-        if (nouveauTexte.trim() !== "") {
-            histoRef.child(editKeyActuelle).update({ texte: nouveauTexte.trim() });
+                    if (soldeActuel > 0) {
+                        const estGain = Math.random() < 0.50;
+                        const pourcentage = Math.floor(Math.random() * 9 + 1) * 10;
+                        const variation = Math.round(soldeActuel * (pourcentage / 100));
+
+                        demandesRef.push({
+                            emetteurId: randomId,
+                            emetteurNom: joueur.nom,
+                            destId: "BANQUE",
+                            destNom: "Bourse",
+                            type: "Événement Bourse",
+                            montant: variation,
+                            estGain: estGain,
+                            pourcentage: pourcentage,
+                            status: 'attente'
+                        });
+
+                        histoRef.push({
+                            texte: '📈 BOURSE : Une opportunité touche ' + joueur.nom + ' (' + (estGain ? '+' : '-') + pourcentage + '% | ' + variation + ' €) - En attente d\'acceptation',
+                            date: new Date().toLocaleTimeString('fr-FR')
+                        });
+                    }
+                }
+            }
+
+            // 2. Roue de la fortune
+            roueRef.once('value', snapshot => {
+                let config = snapshot.val() || {};
+                if (!config.date || config.date !== dateToday) {
+                    config = { date: dateToday, nbActions: 0, tire: false, joueurGagnantId: null };
+                }
+
+                if (config.tire) return;
+                config.nbActions = (config.nbActions || 0) + 1;
+
+                if (config.nbActions >= 3) {
+                    config.tire = true;
+                    const listeIds = Object.keys(window.localJoueurs);
+                    if (listeIds.length > 0) {
+                        const randomId = listeIds[Math.floor(Math.random() * listeIds.length)];
+                        const gagnant = window.localJoueurs[randomId];
+                        config.joueurGagnantId = randomId;
+
+                        const estJoker = Math.random() < 0.15;
+                        const gainEuro = estJoker ? 0 : Math.floor(Math.random() * 5 + 1) * 10;
+
+                        demandesRef.push({
+                            emetteurId: randomId,
+                            emetteurNom: gagnant.nom,
+                            destId: "BANQUE",
+                            destNom: "Roue de la Fortune",
+                            type: "Événement Roue",
+                            montant: gainEuro,
+                            estJoker: estJoker,
+                            status: 'attente'
+                        });
+
+                        histoRef.push({
+                            texte: '🎡 ROUE : ' + gagnant.nom + ' tire le lot (' + (estJoker ? '1 Joker' : gainEuro + ' €') + ') - En attente d\'acceptation',
+                            date: new Date().toLocaleTimeString('fr-FR')
+                        });
+                    }
+                }
+                roueRef.set(config);
+            });
+        }
+
+        function changerOnglet(tabId, element) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            element.classList.add('active');
+        }
+
+        function connexionAdmin() {
+            const pin = document.getElementById('admin-pin').value;
+            if (pin === currentAdminPin) {
+                window.isAdmin = true;
+                document.getElementById('admin-badge').textContent = "🔓 Mode Admin";
+                document.getElementById('admin-badge').classList.add('active');
+                document.getElementById('admin-auth-box').style.display = 'none';
+                document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'block');
+                document.getElementById('admin-pin').value = '';
+                actualiserAffichageJoueurs();
+                actualiserHistoriqueUI();
+            } else alert("Code Administrateur incorrect.");
+        }
+
+        function changerPinAdmin() {
+            if (!window.isAdmin) return;
+            const nouveauPin = document.getElementById('nouveau-pin-admin').value.trim();
+            if (!nouveauPin) return alert("Le mot de passe ne peut pas être vide.");
+
+            adminPinRef.set(nouveauPin).then(() => {
+                alert("Mot de passe Administrateur mis à jour avec succès !");
+                document.getElementById('nouveau-pin-admin').value = '';
+                histoRef.push({
+                    texte: '🔐 Le mot de passe administrateur a été modifié',
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
+            }).catch(err => alert("Erreur : " + err.message));
+        }
+
+        function deconnexionAdmin() {
+            window.isAdmin = false;
+            document.getElementById('admin-badge').textContent = "🔒 Mode Joueur";
+            document.getElementById('admin-badge').classList.remove('active');
+            document.getElementById('admin-auth-box').style.display = 'block';
+            document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+            actualiserAffichageJoueurs();
+            actualiserHistoriqueUI();
+        }
+
+        function resetDettes() {
+            if (!window.isAdmin) return;
+            if (confirm("Voulez-vous remettre à zéro TOUTES les dettes bancaires de tous les joueurs ?")) {
+                Object.keys(window.localJoueurs).forEach(id => {
+                    joueursRef.child(id).update({ dette: 0 });
+                });
+                histoRef.push({
+                    texte: '🧹 L\'Admin a remis à zéro toutes les dettes bancaires',
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
+                alert("Toutes les dettes ont été réinitialisées !");
+            }
+        }
+
+        function resetSoldes() {
+            if (!window.isAdmin) return;
+            if (confirm("Voulez-vous remettre à 0 € TOUS les soldes des joueurs ?")) {
+                Object.keys(window.localJoueurs).forEach(id => {
+                    const soldeActuel = window.localJoueurs[id].solde || 0;
+                    joueursRef.child(id).update({
+                        ancienSolde: soldeActuel,
+                        solde: 0
+                    });
+                });
+                histoRef.push({
+                    texte: '🧹 L\'Admin a réinitialisé tous les soldes à 0 €',
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
+                alert("Tous les soldes sont à 0 € !");
+            }
+        }
+
+        function definirNouveauSoldeAdmin() {
+            if (!window.isAdmin) return;
+            const id = document.getElementById('admin-joueur-solde').value;
+            const nouveauSolde = parseInt(document.getElementById('admin-nouveau-solde').value);
+
+            if (!id) return alert("Sélectionnez un joueur.");
+            if (isNaN(nouveauSolde)) return alert("Saisissez un montant valide.");
+
+            const j = window.localJoueurs[id];
+            const ancienSolde = j.solde || 0;
+
+            joueursRef.child(id).update({
+                ancienSolde: ancienSolde,
+                solde: nouveauSolde
+            });
+
+            histoRef.push({
+                texte: '⚙️ L\'Admin a défini le solde de ' + j.nom + ' à ' + nouveauSolde + ' € (précédent: ' + ancienSolde + ' €)',
+                date: new Date().toLocaleTimeString('fr-FR')
+            });
+
+            document.getElementById('admin-nouveau-solde').value = '';
+            alert("Solde de " + j.nom + " mis à jour !");
+        }
+
+        function ajouterMontantSoldeAdmin() {
+            if (!window.isAdmin) return;
+            const id = document.getElementById('admin-joueur-solde').value;
+            const montantAjout = parseInt(document.getElementById('admin-nouveau-solde').value);
+
+            if (!id) return alert("Sélectionnez un joueur.");
+            if (isNaN(montantAjout)) return alert("Saisissez un montant valide.");
+
+            const j = window.localJoueurs[id];
+            const ancienSolde = j.solde || 0;
+            const nouveauSolde = ancienSolde + montantAjout;
+
+            joueursRef.child(id).update({
+                ancienSolde: ancienSolde,
+                solde: nouveauSolde
+            });
+
+            histoRef.push({
+                texte: '➕ L\'Admin a ajouté ' + montantAjout + ' € au solde de ' + j.nom + ' (Nouveau solde: ' + nouveauSolde + ' €)',
+                date: new Date().toLocaleTimeString('fr-FR')
+            });
+
+            document.getElementById('admin-nouveau-solde').value = '';
+            alert("Ajout effectué avec succès pour " + j.nom + " !");
+        }
+
+        joueursRef.on('value', (snapshot) => {
+            window.localJoueurs = snapshot.val() || {};
+            actualiserAffichageJoueurs();
+        });
+
+        function actualiserAffichageJoueurs() {
+            const data = window.localJoueurs;
+            const listeUi = document.getElementById('liste-joueurs');
+            const selectTransac = document.getElementById('transac-joueur');
+            const selectEmetteur = document.getElementById('demande-emetteur');
+            const selectDest = document.getElementById('demande-destinataire');
+            const selectEditCible = document.getElementById('edit-joueur-cible');
+            const selectAdminSolde = document.getElementById('admin-joueur-solde');
+
+            listeUi.innerHTML = '';
+            selectTransac.innerHTML = '<option value="">Sélectionner un joueur</option>';
+            selectEmetteur.innerHTML = '<option value="">Sélectionner votre nom</option>';
+            selectDest.innerHTML = '<option value="BANQUE">🏦 La Banque (Taux fixe 50%)</option>';
+            selectEditCible.innerHTML = '<option value="">Aucun / Sans solde</option>';
+            selectAdminSolde.innerHTML = '<option value="">Sélectionner un joueur</option>';
+
+            if (Object.keys(data).length === 0) {
+                listeUi.innerHTML = '<li>Aucun joueur enregistré.</li>';
+                return;
+            }
+
+            Object.keys(data).forEach(id => {
+                const j = data[id];
+                const soldeActuel = j.solde || 0;
+                const ancienSolde = j.ancienSolde !== undefined ? j.ancienSolde : null;
+                const detteActuelle = j.dette || 0;
+
+                const li = document.createElement('li');
+                li.innerHTML = '<div><strong>' + j.nom + '</strong>' +
+                    '<div class="solde">' + soldeActuel + ' €' + (ancienSolde !== null ? ' <span class="ancien-solde">(Ancien: ' + ancienSolde + ' €)</span>' : '') + '</div>' +
+                    (detteActuelle > 0 ? '<div class="dette-tag">⚠️ Dette Banque : ' + detteActuelle + ' €</div>' : '') +
+                    '<div class="badge-joker">🃏 Jokers : ' + (j.jokers || 0) + ' / 2</div></div>' +
+                    '<div>' + (window.isAdmin ? '<button class="btn-danger-sm" onclick="supprimerJoueur(\'' + id + '\')">❌</button>' : '') + '</div>';
+                listeUi.appendChild(li);
+
+                selectTransac.options.add(new Option(j.nom, id));
+                selectEmetteur.options.add(new Option(j.nom, id));
+                selectDest.options.add(new Option(j.nom, id));
+                selectEditCible.options.add(new Option(j.nom, id));
+                selectAdminSolde.options.add(new Option(j.nom, id));
+            });
+        }
+
+        function verifierPin(joueurId) {
+            const joueur = window.localJoueurs[joueurId];
+            if (!joueur) return false;
+            const pinSaisi = prompt('Code PIN de ' + joueur.nom + ' :');
+            return pinSaisi === joueur.pin;
+        }
+
+        function validerTransaction() {
+            const id = document.getElementById('transac-joueur').value;
+            const type = document.getElementById('transac-type').value;
+            const montant = parseInt(document.getElementById('transac-montant').value);
+
+            if (!id) return alert("Sélectionnez un joueur.");
+            if (!verifierPin(id)) return alert("Code PIN incorrect !");
+
+            const joueur = window.localJoueurs[id];
+            let soldeActuel = joueur.solde || 0;
+            let jokersActuels = joueur.jokers || 0;
+
+            if (type === 'depot') {
+                if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+                joueursRef.child(id).update({ ancienSolde: soldeActuel, solde: soldeActuel + montant });
+                
+                histoRef.push({ 
+                    texte: '💳 ' + joueur.nom + ' a déposé ' + montant + ' €', 
+                    date: new Date().toLocaleTimeString('fr-FR'),
+                    joueurId: id,
+                    montant: montant,
+                    typeOp: 'depot'
+                });
+
+            } else if (type === 'retrait') {
+                if (isNaN(montant) || montant <= 0) return alert("Montant invalide.");
+                joueursRef.child(id).update({ ancienSolde: soldeActuel, solde: soldeActuel - montant });
+
+                histoRef.push({ 
+                    texte: '💳 ' + joueur.nom + ' a retiré ' + montant + ' €', 
+                    date: new Date().toLocaleTimeString('fr-FR'),
+                    joueurId: id,
+                    montant: montant,
+                    typeOp: 'retrait'
+                });
+
+            } else if (type === 'joker') {
+                if (jokersActuels <= 0) return alert(joueur.nom + " n'a aucun Joker !");
+                joueursRef.child(id).child('jokers').set(jokersActuels - 1);
+                histoRef.push({ 
+                    texte: '🃏 ' + joueur.nom + ' a utilisé 1 Joker (' + (jokersActuels - 1) + '/2 restant)', 
+                    date: new Date().toLocaleTimeString('fr-FR'),
+                    joueurId: id,
+                    typeOp: 'joker'
+                });
+            }
+
+            document.getElementById('transac-montant').value = '';
+            enregistrerActionEtVerifierEvenements();
+        }
+
+        function gererAffichageTaux() {
+            const destId = document.getElementById('demande-destinataire').value;
+            document.getElementById('box-taux').style.display = (destId !== "BANQUE") ? "block" : "none";
+        }
+
+        function soumettreDemande() {
+            const emetteurId = document.getElementById('demande-emetteur').value;
+            const destId = document.getElementById('demande-destinataire').value;
+            const type = document.getElementById('demande-type').value;
+            const montant = parseInt(document.getElementById('demande-montant').value) || 0;
+            const tauxSaisi = parseInt(document.getElementById('demande-taux').value);
+
+            if (!emetteurId) return alert("Sélectionnez votre nom.");
+            if (!verifierPin(emetteurId)) return alert("Code PIN incorrect !");
+
+            const emetteurNom = window.localJoueurs[emetteurId].nom;
+            const destNom = destId === "BANQUE" ? "la Banque" : window.localJoueurs[destId].nom;
+            
+            let tauxText = "";
+            let taux = 0;
+            if (destId === "BANQUE") {
+                taux = 50;
+                tauxText = " | Taux: 50%";
+            } else if (!isNaN(tauxSaisi) && tauxSaisi >= 0) {
+                taux = tauxSaisi;
+                tauxText = ' | Taux proposé: ' + tauxSaisi + '%';
+            }
+
+            demandesRef.push({
+                emetteurId: emetteurId,
+                emetteurNom: emetteurNom,
+                destId: destId,
+                destNom: destNom,
+                type: type,
+                montant: montant,
+                taux: taux,
+                status: 'attente'
+            });
+
+            histoRef.push({
+                texte: '📩 Demande de ' + emetteurNom + ' vers ' + destNom + ' (' + type + ' : ' + montant + ' €' + tauxText + ')',
+                date: new Date().toLocaleTimeString('fr-FR')
+            });
+
+            document.getElementById('demande-montant').value = '';
+            document.getElementById('demande-taux').value = '';
+        }
+
+        demandesRef.on('value', (snapshot) => {
+            const data = snapshot.val() || {};
+            const conteneur = document.getElementById('liste-demandes');
+            conteneur.innerHTML = '';
+
+            if (Object.keys(data).length === 0) {
+                conteneur.innerHTML = '<p>Aucune demande active.</p>';
+                return;
+            }
+
+            Object.keys(data).forEach(id => {
+                const d = data[id];
+                const item = document.createElement('div');
+                item.className = 'demande-item';
+
+                if (d.type === "Événement Bourse") {
+                    const signe = d.estGain ? "📈 Gain" : "📉 Perte";
+                    item.innerHTML = '<div><strong>📈 Bourse pour ' + d.emetteurNom + '</strong></div>' +
+                        '<div>Effet proposé : ' + signe + ' de <strong>' + d.pourcentage + '%</strong> (' + (d.estGain ? '+' : '-') + d.montant + ' €)</div>' +
+                        '<small style="color:var(--danger)">Un refus entraîne une taxe de 20 €</small>' +
+                        '<div class="demande-actions">' +
+                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                        '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser (-20 €)</button>' +
+                        '</div>';
+                } else if (d.type === "Événement Roue") {
+                    const lot = d.estJoker ? "1 Joker 🃏" : d.montant + " € 💰";
+                    item.innerHTML = '<div><strong>🎡 Roue de la Fortune pour ' + d.emetteurNom + '</strong></div>' +
+                        '<div>Gain proposé : <strong>' + lot + '</strong></div>' +
+                        '<small style="color:var(--danger)">Un refus entraîne une taxe de 20 €</small>' +
+                        '<div class="demande-actions">' +
+                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                        '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser (-20 €)</button>' +
+                        '</div>';
+                } else {
+                    item.innerHTML = '<div><strong>' + d.emetteurNom + '</strong> ➔ <strong>' + d.destNom + '</strong> (' + d.type + ')</div>' +
+                        '<div>Montant : <strong>' + d.montant + ' €' + (d.taux ? ' | Taux : <strong>' + d.taux + '%</strong>' : '') + '</div>' +
+                        '<div class="demande-actions">' +
+                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                        '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser</button>' +
+                        '</div>';
+                }
+
+                conteneur.appendChild(item);
+            });
+        });
+
+        function traiterDemande(id, accepter) {
+            demandesRef.child(id).once('value', (snapshot) => {
+                const d = snapshot.val();
+                if (!d) return;
+
+                const joueurTarget = window.localJoueurs[d.emetteurId];
+
+                if (d.type === "Événement Bourse" || d.type === "Événement Roue") {
+                    if (!verifierPin(d.emetteurId)) return alert("Code PIN incorrect !");
+
+                    if (accepter) {
+                        if (d.type === "Événement Bourse") {
+                            const soldeActuel = joueurTarget.solde || 0;
+                            const nouveauSolde = d.estGain ? (soldeActuel + d.montant) : Math.max(0, soldeActuel - d.montant);
+                            joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: nouveauSolde });
+
+                            histoRef.push({
+                                texte: '📈 BOURSE ACCEPTEE : ' + d.emetteurNom + (d.estGain ? ' gagne +' : ' perd -') + d.montant + ' €',
+                                date: new Date().toLocaleTimeString('fr-FR')
+                            });
+                        } else if (d.type === "Événement Roue") {
+                            if (d.estJoker) {
+                                const jokersActuels = joueurTarget.jokers || 0;
+                                if (jokersActuels < 2) {
+                                    joueursRef.child(d.emetteurId).update({ jokers: jokersActuels + 1 });
+                                    histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' reçoit 1 Joker 🃏', date: new Date().toLocaleTimeString('fr-FR') });
+                                } else {
+                                    const soldeActuel = joueurTarget.solde || 0;
+                                    joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 50 });
+                                    histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' (Jokers max) reçoit 50 €', date: new Date().toLocaleTimeString('fr-FR') });
+                                }
+                            } else {
+                                const soldeActuel = joueurTarget.solde || 0;
+                                joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel + d.montant });
+                                histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' gagne ' + d.montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
+                            }
+                        }
+                    } else {
+                        const soldeActuel = joueurTarget.solde || 0;
+                        joueursRef.child(d.emetteurId).update({
+                            ancienSolde: soldeActuel,
+                            solde: soldeActuel - 20
+                        });
+
+                        histoRef.push({
+                            texte: '🚫 REFUS (' + d.type + ') : ' + d.emetteurNom + ' a refusé l\'événement et paie une taxe de 20 €',
+                            date: new Date().toLocaleTimeString('fr-FR')
+                        });
+                    }
+
+                    demandesRef.child(id).remove();
+                    return;
+                }
+
+                if (accepter) {
+                    if (d.type === "Emprunt") {
+                        const tauxApplique = (d.destId === "BANQUE") ? 50 : (d.taux || 0);
+                        const montantEmprunte = d.montant;
+                        
+                        if (joueurTarget) {
+                            const soldeActuel = joueurTarget.solde || 0;
+                            const detteActuelle = joueurTarget.dette || 0;
+                            const montantAValoir = Math.round(montantEmprunte * (1 + tauxApplique / 100));
+
+                            if (d.destId !== "BANQUE") {
+                                if (!verifierPin(d.destId)) return alert("Code PIN du prêteur incorrect !");
+                                const joueurPreteur = window.localJoueurs[d.destId];
+                                if (joueurPreteur) {
+                                    const soldePreteur = joueurPreteur.solde || 0;
+                                    joueursRef.child(d.destId).update({ ancienSolde: soldePreteur, solde: soldePreteur - montantEmprunte });
+                                }
+                            }
+
+                            joueursRef.child(d.emetteurId).update({
+                                ancienSolde: soldeActuel,
+                                solde: soldeActuel + montantEmprunte,
+                                dette: (d.destId === "BANQUE") ? (detteActuelle + montantAValoir) : detteActuelle
+                            });
+
+                            histoRef.push({ 
+                                texte: '✅ Prêt accordé : ' + d.emetteurNom + ' reçoit ' + montantEmprunte + ' € de ' + d.destNom + ' (Taux ' + tauxApplique + '% ➔ Montant à rembourser : ' + montantAValoir + ' €)', 
+                                date: new Date().toLocaleTimeString('fr-FR'),
+                                joueurId: d.emetteurId,
+                                montant: montantEmprunte,
+                                typeOp: 'depot'
+                            });
+                        }
+
+                    } else if (d.type === "Virement") {
+                        if (d.destId !== "BANQUE" && !verifierPin(d.emetteurId)) return alert("Code PIN incorrect ! Le virement est annulé.");
+
+                        const emetteur = window.localJoueurs[d.emetteurId];
+                        const destinataire = window.localJoueurs[d.destId];
+
+                        const tauxApplique = d.taux || 0;
+                        const montantMajor = Math.round(d.montant * (1 + tauxApplique / 100));
+
+                        if (destinataire && emetteur) {
+                            const soldeDest = destinataire.solde || 0;
+                            const soldeEmet = emetteur.solde || 0;
+
+                            joueursRef.child(d.emetteurId).update({ ancienSolde: soldeEmet, solde: soldeEmet - montantMajor });
+                            joueursRef.child(d.destId).update({ ancienSolde: soldeDest, solde: soldeDest + montantMajor });
+
+                            let detailsTaux = tauxApplique > 0 ? ' (dont ' + tauxApplique + '% de taux)' : '';
+                            histoRef.push({ 
+                                texte: '💸 Virement effectué : ' + montantMajor + ' € versés de ' + d.emetteurNom + ' à ' + d.destNom + detailsTaux, 
+                                date: new Date().toLocaleTimeString('fr-FR'),
+                                joueurId: d.emetteurId,
+                                montant: montantMajor,
+                                typeOp: 'virement',
+                                destId: d.destId
+                            });
+
+                        } else if (d.destId === "BANQUE") {
+                            const soldeEmet = emetteur.solde || 0;
+                            const detteActuelle = emetteur.dette || 0;
+                            const nouvelleDette = Math.max(0, detteActuelle - d.montant);
+
+                            joueursRef.child(d.emetteurId).update({
+                                ancienSolde: soldeEmet,
+                                solde: soldeEmet - d.montant,
+                                dette: nouvelleDette
+                            });
+
+                            histoRef.push({ 
+                                texte: '💸 Virement vers la Banque : ' + d.emetteurNom + ' a versé ' + d.montant + ' € à la Banque', 
+                                date: new Date().toLocaleTimeString('fr-FR'),
+                                joueurId: d.emetteurId,
+                                montant: d.montant,
+                                typeOp: 'retrait'
+                            });
+                        }
+
+                    } else {
+                        histoRef.push({ 
+                            texte: '✅ Demande de ' + d.emetteurNom + ' validée (' + d.montant + ' €)', 
+                            date: new Date().toLocaleTimeString('fr-FR') 
+                        });
+                    }
+
+                    enregistrerActionEtVerifierEvenements();
+                } else {
+                    histoRef.push({ 
+                        texte: '❌ Demande de ' + d.emetteurNom + ' refusée', 
+                        date: new Date().toLocaleTimeString('fr-FR') 
+                    });
+                }
+
+                demandesRef.child(id).remove();
+            });
+        }
+
+        let rawHistoData = {};
+        histoRef.on('value', (snapshot) => {
+            rawHistoData = snapshot.val() || {};
+            actualiserHistoriqueUI();
+        });
+
+        function actualiserHistoriqueUI() {
+            const conteneur = document.getElementById('historique-liste');
+            conteneur.innerHTML = '';
+            const keys = Object.keys(rawHistoData).reverse();
+
+            if (keys.length === 0) {
+                conteneur.innerHTML = '<li>Aucun historique enregistré.</li>';
+                return;
+            }
+
+            keys.forEach(k => {
+                const h = rawHistoData[k];
+                const estAnnule = h.annule === true;
+
+                const li = document.createElement('li');
+                li.innerHTML = '<span class="' + (estAnnule ? 'histo-annule' : '') + '">' + h.texte + ' <small style="color: #64748b; margin-left:8px;">' + h.date + '</small></span>' +
+                    '<div>' +
+                    (window.isAdmin && !estAnnule ? '<button class="btn-edit-sm" onclick="ouvrirModalEdit(\'' + k + '\')">✏️ Éditer</button>' : '') +
+                    (window.isAdmin ? '<button class="btn-danger-sm" onclick="supprimerLigneHisto(\'' + k + '\')">🗑️</button>' : '') +
+                    '</div>';
+                conteneur.appendChild(li);
+            });
+        }
+
+        function ouvrirModalEdit(id) {
+            const h = rawHistoData[id];
+            if (!h) return;
+
+            document.getElementById('edit-histo-id').value = id;
+            document.getElementById('edit-texte-actuel').textContent = "Ligne : " + h.texte;
+            document.getElementById('edit-nouveau-montant').value = h.montant || "";
+            document.getElementById('edit-joueur-cible').value = h.joueurId || "";
+
+            document.getElementById('modal-edit').style.display = 'flex';
+        }
+
+        function fermerModalEdit() {
+            document.getElementById('modal-edit').style.display = 'none';
+        }
+
+        function validerModificationHisto() {
+            const id = document.getElementById('edit-histo-id').value;
+            const nouveauMontant = parseInt(document.getElementById('edit-nouveau-montant').value);
+            const joueurId = document.getElementById('edit-joueur-cible').value;
+
+            if (isNaN(nouveauMontant) || nouveauMontant < 0) return alert("Saisissez un montant valide.");
+
+            const h = rawHistoData[id];
+            const ancienMontant = h.montant || 0;
+            const diff = nouveauMontant - ancienMontant;
+
+            if (joueurId && window.localJoueurs[joueurId] && diff !== 0) {
+                const j = window.localJoueurs[joueurId];
+                const soldeActuel = j.solde || 0;
+                
+                let ajustement = diff;
+                if (h.typeOp === 'retrait') ajustement = -diff;
+
+                joueursRef.child(joueurId).update({
+                    ancienSolde: soldeActuel,
+                    solde: soldeActuel + ajustement
+                });
+            }
+
+            let nouveauTexte = h.texte;
+            if (ancienMontant > 0) {
+                nouveauTexte = nouveauTexte.replace(ancienMontant + ' €', nouveauMontant + ' €');
+            }
+
+            histoRef.child(id).update({
+                montant: nouveauMontant,
+                texte: nouveauTexte + ' (Modifié par Admin)',
+                joueurId: joueurId
+            });
+
+            alert("Transaction modifiée ! Le solde a été réajusté.");
             fermerModalEdit();
         }
-    }
 
-    function supprimerLigneHisto(key) {
-        if (confirm("Voulez-vous supprimer cette ligne d'historique ?")) {
-            histoRef.child(key).remove();
+        function annulerTransactionHisto() {
+            const id = document.getElementById('edit-histo-id').value;
+            const h = rawHistoData[id];
+
+            if (!confirm("Voulez-vous vraiment ANNULER cette transaction et inverser son effet sur les soldes ?")) return;
+
+            const montant = h.montant || 0;
+            const joueurId = h.joueurId || document.getElementById('edit-joueur-cible').value;
+
+            if (joueurId && window.localJoueurs[joueurId] && montant > 0) {
+                const j = window.localJoueurs[joueurId];
+                const soldeActuel = j.solde || 0;
+
+                let inversion = 0;
+                if (h.typeOp === 'depot') inversion = -montant;
+                else if (h.typeOp === 'retrait') inversion = montant;
+                else if (h.typeOp === 'virement') {
+                    inversion = montant;
+                    if (h.destId && window.localJoueurs[h.destId]) {
+                        const dest = window.localJoueurs[h.destId];
+                        joueursRef.child(h.destId).update({ solde: (dest.solde || 0) - montant });
+                    }
+                }
+
+                joueursRef.child(joueurId).update({
+                    ancienSolde: soldeActuel,
+                    solde: soldeActuel + inversion
+                });
+            }
+
+            histoRef.child(id).update({
+                annule: true,
+                texte: '⛔ [ANNULÉ] ' + h.texte
+            });
+
+            alert("Transaction annulée et soldes réajustés !");
+            fermerModalEdit();
         }
-    }
 
-    // Roue et opportunités
-    function lancerRoue() {
-        const gains = ["+100$", "-50$", "Joker Aléatoire", "Banqueroute", "+200$", "Rien"];
-        const resultat = gains[Math.floor(Math.random() * gains.length)];
-        document.getElementById('roue-resultat').innerText = "Résultat : " + resultat;
-    }
+        function supprimerLigneHisto(id) {
+            const h = rawHistoData[id];
+            if (!h) return;
 
-    // Export / Import BDD
-    function exporterSauvegardeBDD() {
-        db.ref().once('value').then(snapshot => {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(snapshot.val()));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "monopmonney_backup_" + new Date().toISOString().slice(0,10) + ".json");
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
+            if (confirm("Supprimer cette ligne d'historique ?")) {
+                if (!h.annule && h.joueurId && window.localJoueurs[h.joueurId] && h.montant) {
+                    const j = window.localJoueurs[h.joueurId];
+                    const soldeActuel = j.solde || 0;
+                    let inversion = 0;
+
+                    if (h.typeOp === 'depot') inversion = -h.montant;
+                    else if (h.typeOp === 'retrait') inversion = h.montant;
+
+                    if (inversion !== 0) {
+                        joueursRef.child(h.joueurId).update({
+                            ancienSolde: soldeActuel,
+                            solde: soldeActuel + inversion
+                        });
+                    }
+                }
+                histoRef.child(id).remove();
+            }
+        }
+
+        function creerJoueur() {
+            if (!window.isAdmin) return;
+            const nom = document.getElementById('nouveau-nom').value.trim();
+            const pin = document.getElementById('nouveau-pin').value.trim();
+
+            if (!nom || pin.length !== 4) return alert("Veuillez saisir un nom et un PIN à 4 chiffres.");
+
+            joueursRef.push({
+                nom: nom,
+                pin: pin,
+                solde: 0,
+                dette: 0,
+                jokers: 0
+            }).then(() => {
+                alert("Joueur " + nom + " créé !");
+                document.getElementById('nouveau-nom').value = '';
+                document.getElementById('nouveau-pin').value = '';
+            });
+        }
+
+        function supprimerJoueur(id) {
+            if (!window.isAdmin) return;
+            const j = window.localJoueurs[id];
+            if (confirm("Supprimer définitivement " + (j ? j.nom : "ce joueur") + " ?")) {
+                joueursRef.child(id).remove();
+            }
+        }
+
+        chronoRef.on('value', (snapshot) => {
+            const chrono = snapshot.val();
+            const banner = document.getElementById('chrono-banner');
+
+            if (!chrono || !chrono.actif) {
+                banner.style.display = 'none';
+                if (chronoInterval) clearInterval(chronoInterval);
+                return;
+            }
+
+            banner.style.display = 'block';
+            document.getElementById('chrono-description').textContent = '⏱️ ' + chrono.description;
+
+            if (chronoInterval) clearInterval(chronoInterval);
+
+            chronoInterval = setInterval(() => {
+                const diff = chrono.fin - Date.now();
+                if (diff <= 0) {
+                    clearInterval(chronoInterval);
+                    banner.style.display = 'none';
+                    return;
+                }
+
+                document.getElementById('t-jours').textContent = Math.floor(diff / (1000 * 60 * 60 * 24));
+                document.getElementById('t-heures').textContent = Math.floor((diff / (1000 * 60 * 60)) % 24).toString().padStart(2, '0');
+                document.getElementById('t-minutes').textContent = Math.floor((diff / 1000 / 60) % 60).toString().padStart(2, '0');
+                document.getElementById('t-secondes').textContent = Math.floor((diff / 1000) % 60).toString().padStart(2, '0');
+            }, 1000);
         });
-    }
 
-    function importerSauvegardeBDD(event) {
-        const file = event.target.files[0];
-        if (!file) return;
+        function lancerChrono() {
+            const desc = document.getElementById('chrono-desc').value.trim() || "Défi en cours";
+            const dateVal = document.getElementById('chrono-date').value;
+            if (!dateVal) return alert("Sélectionnez une date de fin.");
 
-        if (confirm("ATTENTION : Cette action écrasera toutes les données actuelles de la base de données. Continuer ?")) {
+            const fin = new Date(dateVal).getTime();
+            chronoRef.set({ actif: true, description: desc, fin: fin });
+        }
+
+        function arreterChrono() { chronoRef.set({ actif: false }); }
+
+        function sauvegarderBDD() {
+            if (!window.isAdmin) return alert("Action réservée à l'administrateur.");
+
+            db.ref().once('value').then(snapshot => {
+                const data = snapshot.val();
+                if (!data) return alert("Aucune donnée à sauvegarder.");
+
+                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data, null, 2));
+                const dateStr = new Date().toISOString().slice(0, 10);
+                const fileName = 'sauvegarde_banque_' + dateStr + '.json';
+
+                const downloadAnchor = document.createElement('a');
+                downloadAnchor.setAttribute("href", dataStr);
+                downloadAnchor.setAttribute("download", fileName);
+                document.body.appendChild(downloadAnchor);
+                
+                downloadAnchor.click();
+                downloadAnchor.remove();
+
+                histoRef.push({
+                    texte: '💾 Sauvegarde complète de la BDD téléchargée par l\'Admin',
+                    date: new Date().toLocaleTimeString('fr-FR')
+                });
+
+                alert("Sauvegarde téléchargée avec succès : " + fileName);
+            }).catch(error => {
+                alert("Erreur lors de la sauvegarde : " + error.message);
+            });
+        }
+
+        function restaurerBDD(event) {
+            if (!window.isAdmin) return alert("Action réservée à l'administrateur.");
+
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const confirmation = confirm("⚠️ ATTENTION : Tu vas écraser l'intégralité des données actuelles avec ce fichier. Souhaites-tu continuer ?");
+            if (!confirmation) {
+                event.target.value = '';
+                return;
+            }
+
             const reader = new FileReader();
             reader.onload = function(e) {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    db.ref().set(data).then(() => {
-                        alert("Restauration de la BDD réussie !");
-                    });
+                    const dataToRestore = JSON.parse(e.target.result);
+
+                    db.ref().set(dataToRestore)
+                        .then(() => {
+                            alert("✅ Base de données restaurée avec succès ! La page va être rechargée.");
+                            location.reload();
+                        })
+                        .catch(error => alert("Erreur Firebase lors de la restauration : " + error.message));
+
                 } catch (err) {
-                    alert("Erreur lors de la lecture du fichier JSON.");
+                    alert("❌ Fichier invalide. Assure-toi qu'il s'agit bien d'un fichier JSON valide.");
                 }
             };
+
             reader.readAsText(file);
         }
-    }
-</script>
+    </script>
 </body>
 </html>
