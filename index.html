@@ -657,7 +657,7 @@
                 .then(() => alert("Le tirage de la roue a été réinitialisé !"));
         }
 
-        /* --- LOGIQUE DES ÉVÉNEMENTS ALEATOIRES AVEC VALIDATION/REFUS --- */
+        /* --- LOGIQUE DES ÉVÉNEMENTS ALEATOIRES AVEC MASQUAGE DU RESULTAT --- */
         function enregistrerActionEtVerifierEvenements() {
             const dateToday = new Date().toLocaleDateString('fr-FR');
             
@@ -687,7 +687,7 @@
                         });
 
                         histoRef.push({
-                            texte: '📈 BOURSE : Une opportunité touche ' + joueur.nom + ' (' + (estGain ? '+' : '-') + pourcentage + '% | ' + variation + ' €) - En attente d\'acceptation',
+                            texte: '📈 BOURSE : Une opportunité touche ' + joueur.nom + ' - En attente d\'acceptation',
                             date: new Date().toLocaleTimeString('fr-FR')
                         });
                     }
@@ -727,7 +727,7 @@
                         });
 
                         histoRef.push({
-                            texte: '🎡 ROUE : ' + gagnant.nom + ' tire le lot (' + (estJoker ? '1 Joker' : gainEuro + ' €') + ') - En attente d\'acceptation',
+                            texte: '🎡 ROUE : ' + gagnant.nom + ' a un tirage en attente - En attente d\'acceptation',
                             date: new Date().toLocaleTimeString('fr-FR')
                         });
                     }
@@ -1035,21 +1035,19 @@
                 item.className = 'demande-item';
 
                 if (d.type === "Événement Bourse") {
-                    const signe = d.estGain ? "📈 Gain" : "📉 Perte";
-                    item.innerHTML = '<div><strong>📈 Bourse pour ' + d.emetteurNom + '</strong></div>' +
-                        '<div>Effet proposé : ' + signe + ' de <strong>' + d.pourcentage + '%</strong> (' + (d.estGain ? '+' : '-') + d.montant + ' €)</div>' +
-                        '<small style="color:var(--danger)">Un refus entraîne une taxe de 20 €</small>' +
+                    item.innerHTML = '<div><strong>📈 Opportunité Boursière pour ' + d.emetteurNom + '</strong></div>' +
+                        '<div>Souhaitez-vous tenter l\'opportunité boursière mystère ?</div>' +
+                        '<small style="color:var(--danger)">Un refus entraîne une taxe fixe de 20 €</small>' +
                         '<div class="demande-actions">' +
-                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter et découvrir</button>' +
                         '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser (-20 €)</button>' +
                         '</div>';
                 } else if (d.type === "Événement Roue") {
-                    const lot = d.estJoker ? "1 Joker 🃏" : d.montant + " € 💰";
-                    item.innerHTML = '<div><strong>🎡 Roue de la Fortune pour ' + d.emetteurNom + '</strong></div>' +
-                        '<div>Gain proposé : <strong>' + lot + '</strong></div>' +
-                        '<small style="color:var(--danger)">Un refus entraîne une taxe de 20 €</small>' +
+                    item.innerHTML = '<div><strong>🎡 Tirage de la Roue pour ' + d.emetteurNom + '</strong></div>' +
+                        '<div>Un lot mystère est disponible !</div>' +
+                        '<small style="color:var(--danger)">Un refus entraîne une taxe fixe de 20 €</small>' +
                         '<div class="demande-actions">' +
-                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter</button>' +
+                        '<button class="btn-success" onclick="traiterDemande(\'' + id + '\', true)">Accepter et découvrir</button>' +
                         '<button class="btn-danger" onclick="traiterDemande(\'' + id + '\', false)">Refuser (-20 €)</button>' +
                         '</div>';
                 } else {
@@ -1081,8 +1079,14 @@
                             const nouveauSolde = d.estGain ? (soldeActuel + d.montant) : Math.max(0, soldeActuel - d.montant);
                             joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: nouveauSolde });
 
+                            const resultatMessage = d.estGain 
+                                ? '🎉 GAIN BOURSE ! ' + d.emetteurNom + ' gagne +' + d.pourcentage + '% (+' + d.montant + ' €)'
+                                : '📉 PERTE BOURSE ! ' + d.emetteurNom + ' perd -' + d.pourcentage + '% (-' + d.montant + ' €)';
+
+                            alert(resultatMessage);
+
                             histoRef.push({
-                                texte: '📈 BOURSE ACCEPTEE : ' + d.emetteurNom + (d.estGain ? ' gagne +' : ' perd -') + d.montant + ' €',
+                                texte: '📈 BOURSE : ' + resultatMessage,
                                 date: new Date().toLocaleTimeString('fr-FR')
                             });
                         } else if (d.type === "Événement Roue") {
@@ -1090,24 +1094,29 @@
                                 const jokersActuels = joueurTarget.jokers || 0;
                                 if (jokersActuels < 2) {
                                     joueursRef.child(d.emetteurId).update({ jokers: jokersActuels + 1 });
-                                    histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' reçoit 1 Joker 🃏', date: new Date().toLocaleTimeString('fr-FR') });
+                                    alert('🎉 ROUE ! ' + d.emetteurNom + ' gagne 1 Joker 🃏 !');
+                                    histoRef.push({ texte: '🎡 ROUE : ' + d.emetteurNom + ' gagne 1 Joker 🃏', date: new Date().toLocaleTimeString('fr-FR') });
                                 } else {
                                     const soldeActuel = joueurTarget.solde || 0;
                                     joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel + 50 });
-                                    histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' (Jokers max) reçoit 50 €', date: new Date().toLocaleTimeString('fr-FR') });
+                                    alert('🎉 ROUE ! ' + d.emetteurNom + ' (Jokers au max) reçoit 50 € 💰 !');
+                                    histoRef.push({ texte: '🎡 ROUE : ' + d.emetteurNom + ' (Jokers max) reçoit 50 €', date: new Date().toLocaleTimeString('fr-FR') });
                                 }
                             } else {
                                 const soldeActuel = joueurTarget.solde || 0;
                                 joueursRef.child(d.emetteurId).update({ ancienSolde: soldeActuel, solde: soldeActuel + d.montant });
-                                histoRef.push({ texte: '🎡 ROUE ACCEPTEE : ' + d.emetteurNom + ' gagne ' + d.montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
+                                alert('🎉 ROUE ! ' + d.emetteurNom + ' gagne ' + d.montant + ' € 💰 !');
+                                histoRef.push({ texte: '🎡 ROUE : ' + d.emetteurNom + ' gagne ' + d.montant + ' €', date: new Date().toLocaleTimeString('fr-FR') });
                             }
                         }
                     } else {
                         const soldeActuel = joueurTarget.solde || 0;
                         joueursRef.child(d.emetteurId).update({
                             ancienSolde: soldeActuel,
-                            solde: soldeActuel - 20
+                            solde: Math.max(0, soldeActuel - 20)
                         });
+
+                        alert('🚫 Evénement refusé. Une taxe de 20 € a été prélevée.');
 
                         histoRef.push({
                             texte: '🚫 REFUS (' + d.type + ') : ' + d.emetteurNom + ' a refusé l\'événement et paie une taxe de 20 €',
